@@ -62,10 +62,13 @@ defmodule Minesweepers.Game.Board do
   end
 
   defp flip_empty(%Board{squares: squares} = board, pos, seen \\ []) do
-    if has_no_neighbors(board, pos) and not pos in seen do
-      neighbors(board, pos) |> Enum.reduce([pos| seen], fn c, a -> flip_empty(board, c, a) end)
-    else
-      seen
+    cond do
+      pos in seen -> seen
+
+      has_no_neighbors(board, pos) ->
+        neighbors(board, pos) |> Enum.reduce([pos| seen], fn c, a -> flip_empty(board, c, a) end)
+
+      true -> [pos| seen]
     end
   end
 

@@ -58,36 +58,20 @@ defmodule Minesweepers.Socket do
     end
   end
 
-  def websocket_info({:message, message}, req, state) do
-    IO.inspect({"info1", message})
-    {:reply, {:text, message}, req, state}
-  end
-
-  def websocket_info({:turn, changed}, req, state) do
-    IO.inspect({"turn recv:", changed})
-    {:noreply, req, state}
-  end
-
   def websocket_info({:init, game}, req, state) do
     Game.subscribe(game)
-    res = Game.visible_state(game) |> Poison.encode!
+    res = %{type: "init", state: Game.visible_state(game)} |> Poison.encode!
     {:reply, {:text, res}, req, state}
   end
 
   def websocket_info({:game_event, e}, req, state) do
-    res = Poison.encode!(e)
+    res = %{type: "update", update: e} |>  Poison.encode!
     {:reply, {:text, res}, req, state}
   end
 
   def websocket_info(message, req, state) do
     IO.inspect(message)
     {:reply, {:text, message}, req, state}
-  end
-
-  defp message_self(message) do
-    m = Poison.encode!(message)
-    m |> IO.inspect
-    send self, {:message, m}
   end
 
   def websocket_terminate(_reason, _req, _state) do
