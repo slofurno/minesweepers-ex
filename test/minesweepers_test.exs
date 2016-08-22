@@ -13,18 +13,18 @@ defmodule MinesweepersTest do
   test "game board creation" do
     %Board{cols: cols, rows: rows, squares: squares} = Board.new(2,2,0)
     assert squares == %{
-      {0,0} => %Square{neighbors: 0, type: :empty},
-      {0,1} => %Square{neighbors: 0, type: :empty},
-      {1,0} => %Square{neighbors: 0, type: :empty},
-      {1,1} => %Square{neighbors: 0, type: :empty}
+      {0,0} => %Square{neighbors: 0, type: :empty, row: 0, col: 0},
+      {0,1} => %Square{neighbors: 0, type: :empty, row: 0, col: 1},
+      {1,0} => %Square{neighbors: 0, type: :empty, row: 1, col: 0},
+      {1,1} => %Square{neighbors: 0, type: :empty, row: 1, col: 1}
     }
 
     %Board{cols: cols, rows: rows, squares: squares} = Board.new(2,2,1)
     assert squares == %{
-      {0,0} => %Square{neighbors: 3, type: :bomb},
-      {0,1} => %Square{neighbors: 3, type: :bomb},
-      {1,0} => %Square{neighbors: 3, type: :bomb},
-      {1,1} => %Square{neighbors: 3, type: :bomb}
+      {0,0} => %Square{neighbors: 3, type: :bomb, row: 0, col: 0},
+      {0,1} => %Square{neighbors: 3, type: :bomb, row: 0, col: 1},
+      {1,0} => %Square{neighbors: 3, type: :bomb, row: 1, col: 0},
+      {1,1} => %Square{neighbors: 3, type: :bomb, row: 1, col: 1}
     }
   end
 
@@ -55,5 +55,15 @@ defmodule MinesweepersTest do
     |> Enum.count
 
     assert revealed_and_empty == rows*cols
+  end
+
+  test "flag a mine" do
+    board = Board.new(1, 1, 1)
+    {type, board} = Board.mark_square(board, {0, 0})
+    assert type == :bomb
+
+    first = Board.list_squares(board) |> Enum.fetch!(0)
+    assert first == %Square{row: 0, col: 0, flagged: true, neighbors: 0, revealed: true, type: :bomb}
+
   end
 end

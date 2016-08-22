@@ -41,14 +41,18 @@ defmodule Minesweepers.Game.Board do
         #infos = Enum.map(flipped, fn x -> {x, next_squares[x]} end)
         {:empty, %Board{board| squares: squares1}, flipped}
 
-      _ -> {:ok}
+      _ -> {:error}
     end
   end
 
-  def mark_square(%Board{} = board, pos) do
+  def mark_square(%Board{squares: squares} = board, pos) do
     case get_square(board, pos) do
-      %Square{type: :bomb, revealed: false, flagged: false} -> {:bomb}
-      %Square{type: :empty, revealed: false, flagged: false} -> {:empty}
+      %Square{type: :bomb, revealed: false} -> {:bomb}
+        squares1 = flag_square(squares, pos)
+        {:bomb, %Board{board| squares: squares1}}
+
+      %Square{type: :empty, revealed: false} -> {:empty}
+      _ -> {:ok}
 
     end
   end
@@ -64,12 +68,15 @@ defmodule Minesweepers.Game.Board do
     end
   end
 
-  defp reveal_squares(state, squares) do
-    Enum.reduce(squares, state, fn c,a ->
+  defp reveal_squares(squares, revealed) do
+    Enum.reduce(revealed, squares, fn c,a ->
       Map.put(a,c,%Square{a[c]| revealed: true})
     end)
   end
 
+  defp flag_square(squares, pos) do
+    Map.put(squares, pos, %Square{squares[pos]| revealed: true, flagged: true})
+  end
 
   defp make_square(chance, row, col) do
     if chance > Rand.next(), do: Square.new(:bomb, row, col), else: Square.new(:empty, row, col)

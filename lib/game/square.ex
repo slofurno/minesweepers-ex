@@ -12,7 +12,7 @@ defmodule Minesweepers.Game.Square do
   ]
 
   def new(type, row, col) when type in @types do
-    %Square{type: type}
+    %Square{type: type, row: row, col: col}
   end
 
   def new(_type) do
