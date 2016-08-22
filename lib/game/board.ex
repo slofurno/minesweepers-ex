@@ -33,13 +33,8 @@ defmodule Minesweepers.Game.Board do
         {:bomb, %Board{board| squares: squares1}}
 
       %Square{type: :empty, revealed: false, flagged: false} ->
-        {:ok, seen} = Stack.start_link
-        flip_empty(board, pos, seen)
-        flipped = Stack.get_all(seen)
-        Stack.stop(seen)
+        flipped = flip_empty(board, pos)
         squares1 = reveal_squares(squares, flipped)
-        #|> Map.put(pos, %Square{squares[pos]| type: :flag})
-        #infos = Enum.map(flipped, fn x -> {x, next_squares[x]} end)
         {:empty, %Board{board| squares: squares1}, flipped}
 
       _ ->
@@ -66,10 +61,11 @@ defmodule Minesweepers.Game.Board do
     for {_, square} <- Map.to_list(squares), do: square
   end
 
-  defp flip_empty(%Board{squares: squares} = board, pos, seen) do
-    if has_no_neighbors(board, pos) && !Stack.contains?(seen, pos) do
-      Stack.push(seen, pos)
-      neighbors(board, pos) |> Enum.map(&flip_empty(board, &1, seen))
+  defp flip_empty(%Board{squares: squares} = board, pos, seen \\ []) do
+    if has_no_neighbors(board, pos) and not pos in seen do
+      neighbors(board, pos) |> Enum.reduce([pos| seen], fn c, a -> flip_empty(board, c, a) end)
+    else
+      seen
     end
   end
 
