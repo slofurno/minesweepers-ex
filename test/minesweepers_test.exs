@@ -1,6 +1,7 @@
 defmodule MinesweepersTest do
   use ExUnit.Case, async: true
   use Plug.Test
+  alias Minesweepers.Game
   alias Minesweepers.Game.Board
   alias Minesweepers.Game.Square
   doctest Minesweepers
@@ -32,6 +33,27 @@ defmodule MinesweepersTest do
     {:empty, board, flipped} = Board.hit_square(board, {1,1})
     assert flipped |> Enum.count == 4
     IO.inspect(flipped)
+  end
 
+  test "hitting a mine" do
+    game = Game.new(10, 10, 1)
+    click = %Minesweepers.ClickEvent{game: game.id, pos: {4,4}}
+    assert Game.player_click(click) == :explode
+  end
+
+  test "reveal all squares" do
+    rows = 10
+    cols = 10
+
+    game = Game.new(rows, cols, 0)
+    click = %Minesweepers.ClickEvent{game: game.id, pos: {4,4}}
+    Game.player_click(click)
+    state = Game.get_state(game.id)
+
+    revealed_and_empty = Board.list_squares(state.board)
+    |> Enum.filter(fn square -> square.revealed && square.type == :empty end)
+    |> Enum.count
+
+    assert revealed_and_empty == rows*cols
   end
 end

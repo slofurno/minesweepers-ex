@@ -28,7 +28,8 @@ defmodule Minesweepers.Game.Board do
 
   def hit_square(%Board{squares: squares} = board, {row, col} = pos) do
     case get_square(board, pos) do
-      %Square{type: :bomb} -> {:bomb}
+      #TODO: reveal bomb
+      %Square{type: :bomb} -> {:bomb, board}
 
       %Square{type: :empty, revealed: false, flagged: false} ->
         {:ok, seen} = Stack.start_link
@@ -50,6 +51,10 @@ defmodule Minesweepers.Game.Board do
       %Square{type: :empty, revealed: false, flagged: false} -> {:empty}
 
     end
+  end
+
+  def list_squares(%Board{squares: squares} = board) do
+    for {_, square} <- Map.to_list(squares), do: square
   end
 
   defp flip_empty(%Board{squares: squares} = board, pos, seen) do

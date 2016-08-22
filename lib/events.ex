@@ -30,3 +30,11 @@ defmodule Minesweepers.BombEvent do
     player: :nil
   ]
 end
+
+defmodule Minesweepers.PlayerEvent do
+  defstruct [
+    type: "player",
+    player: :nil,
+    message: ""
+  ]
+end
