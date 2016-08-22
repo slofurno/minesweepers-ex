@@ -18,4 +18,6 @@ defmodule Minesweepers.Game.Square do
   def new(_type) do
     {:error, "bad type"}
   end
+
+  def is_revealed(%Square{revealed: revealed}), do: revealed
 end

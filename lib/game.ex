@@ -2,34 +2,48 @@ defmodule Minesweepers.Game do
   use GenServer
   alias Minesweepers.Game
   alias Minesweepers.Game.Board
+  alias Minesweepers.Game.Square
   alias Minesweepers.ClickEvent
   alias Minesweepers.FlagEvent
   alias Minesweepers.RevealEvent
   alias Minesweepers.BombEvent
   alias Minesweepers.PlayerEvent
+  alias Minesweepers.Utils
 
   defstruct [
-    id: UUID.uuid4(),
-    board: Board.new(100, 100, 0.1),
+    id: "",
+    board: :nil,
     players: [],
     events: []
   ]
 
   def new(rows, cols, chance) do
     board = Board.new(rows, cols, chance)
-    game = %Game{board: board}
+    game = %Game{board: board, id: Utils.uuid}
     start_link(game)
     game
   end
 
   def new do
-    game = %Game{}
+    board = Board.new(100, 100, 0.15)
+    game = %Game{board: board, id: Utils.uuid}
     start_link(game)
     game
   end
 
+  def start_link(%Game{id: id} = game) do
+    GenServer.start_link(__MODULE__, game, name: via_tuple(id))
+  end
+
   def add_player(game, player) do
 
+  end
+
+  def list_games do
+    match = {{:n, :l, {:game, :_}}, :_, :_}
+    guard = []
+    res = [:"$$"]
+    for [{_, _, {:game, id}}|_] <- :gproc.select([{match, guard, res}]), do: id
   end
 
   def player_click(%ClickEvent{game: game} = event) do
@@ -40,8 +54,9 @@ defmodule Minesweepers.Game do
     whereis(game) |> GenServer.call(:state)
   end
 
-  def start_link(%Game{id: id} = game) do
-    GenServer.start_link(__MODULE__, game, name: via_tuple(id))
+  def visible_state(game) do
+    %Game{board: board, players: players} = get_state(game)
+    Board.list_squares(board) |> Enum.filter(&Square.is_revealed/1)
   end
 
   def handle_call(%ClickEvent{player: player, pos: pos, right: true}, _from, %Game{board: board} = game) do
@@ -54,14 +69,14 @@ defmodule Minesweepers.Game do
         {:reply, :explode, game}
 
       {:ok} ->
-        {:reply, :ok, game}
+        {:reply, :notok, game}
     end
   end
 
   def handle_call(%ClickEvent{player: player, pos: pos}, _from, %Game{board: board} = game) do
     case Board.hit_square(board, pos) do
       {:empty, board, flipped} ->
-        updated = Enum.map(flipped, fn x -> board.squares[flipped] end)
+        updated = Enum.map(flipped, fn x -> board.squares[x] end)
         broadcast(game, %RevealEvent{squares: updated})
         {:reply, :ok, %Game{game| board: board}}
 
@@ -70,7 +85,7 @@ defmodule Minesweepers.Game do
         {:reply, :explode, %Game{game| board: board}}
 
       {:ok} ->
-        {:reply, :ok, game}
+        {:reply, :notok, game}
     end
   end
 

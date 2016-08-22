@@ -2,9 +2,22 @@ defmodule Minesweepers.Router do
   use Plug.Router
   use Plug.Builder
   alias Plug.Conn
+  alias Minesweepers.Game
 
   plug :match
   plug :dispatch
+
+  get "/games" do
+    games = Game.list_games()
+    conn
+    |> put_resp_content_type("application/json")
+    |> send_resp(200, Poison.encode!(games))
+  end
+
+  post "/games" do
+    g = Game.new()
+    send_resp(conn, 200, g.id)
+  end
 
   match _ do
     send_resp(conn, 404, "oops")
