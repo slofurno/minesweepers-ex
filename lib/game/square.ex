@@ -1,13 +1,17 @@
 defmodule Minesweepers.Game.Square do
   alias Minesweepers.Game.Square
-  @types [:empty, :bomb, :flag, :revealed, :exploded]
+  @types [:empty, :bomb, :flag]
 
   defstruct [
     type: :empty,
-    neighbors: 0
+    revealed: false,
+    flagged: false,
+    neighbors: 0,
+    row: -1,
+    col: -1
   ]
 
-  def new(type) when type in @types do
+  def new(type, row, col) when type in @types do
     %Square{type: type}
   end
 

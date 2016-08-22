@@ -14,7 +14,7 @@ defmodule Minesweepers.Game.Board do
     squares = for row <- 0..rows-1,
       col <- 0..cols-1,
       into: %{},
-      do: {{row, col}, make_square(chance)}
+      do: {{row, col}, make_square(chance, row, col)}
 
     board = %Board{squares: squares, rows: rows, cols: cols}
 
@@ -29,16 +29,26 @@ defmodule Minesweepers.Game.Board do
   def hit_square(%Board{squares: squares} = board, {row, col} = pos) do
     case get_square(board, pos) do
       %Square{type: :bomb} -> {:bomb}
-      %Square{type: :empty} ->
+
+      %Square{type: :empty, revealed: false, flagged: false} ->
         {:ok, seen} = Stack.start_link
         flip_empty(board, pos, seen)
         flipped = Stack.get_all(seen)
         Stack.stop(seen)
-        next_squares = reveal_squares(squares, flipped)
+        squares1 = reveal_squares(squares, flipped)
         #|> Map.put(pos, %Square{squares[pos]| type: :flag})
         #infos = Enum.map(flipped, fn x -> {x, next_squares[x]} end)
-        {:empty, %Board{board| squares: next_squares}, flipped}
+        {:empty, %Board{board| squares: squares1}, flipped}
+
       _ -> {:ok}
+    end
+  end
+
+  def mark_square(%Board{} = board, pos) do
+    case get_square(board, pos) do
+      %Square{type: :bomb, revealed: false, flagged: false} -> {:bomb}
+      %Square{type: :empty, revealed: false, flagged: false} -> {:empty}
+
     end
   end
 
@@ -49,18 +59,15 @@ defmodule Minesweepers.Game.Board do
     end
   end
 
-  defp reveal_squares(squares, flipped) do
-    Enum.reduce(flipped, squares, fn c,a ->
-      Map.put(a,c,%Square{a[c]| type: :revealed})
+  defp reveal_squares(state, squares) do
+    Enum.reduce(squares, state, fn c,a ->
+      Map.put(a,c,%Square{a[c]| revealed: true})
     end)
   end
 
-  defp flag_square(squares, pos) do
-    Map.put(squares, pos, %Square{squares[pos]| type: :flag})
-  end
 
-  defp make_square(bomb_chance) do
-    if bomb_chance > Rand.next(), do: Square.new(:bomb), else: Square.new(:empty)
+  defp make_square(chance, row, col) do
+    if chance > Rand.next(), do: Square.new(:bomb, row, col), else: Square.new(:empty, row, col)
   end
 
   defp with_neighbors(%Board{squares: squares, rows: rows, cols: cols} = board, {row, col} = pos) do
