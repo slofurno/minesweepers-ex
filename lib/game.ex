@@ -49,8 +49,12 @@ defmodule Minesweepers.Game do
       {:bomb, board} ->
         broadcast(game, %FlagEvent{player: player, pos: pos})
         {:reply, :ok, %Game{game| board: board}}
-      {:empty, board} ->
+
+      {:empty} ->
         {:reply, :explode, game}
+
+      {:ok} ->
+        {:reply, :ok, game}
     end
   end
 
@@ -65,6 +69,8 @@ defmodule Minesweepers.Game do
         broadcast(game, %BombEvent{pos: pos, player: player})
         {:reply, :explode, %Game{game| board: board}}
 
+      {:ok} ->
+        {:reply, :ok, game}
     end
   end
 

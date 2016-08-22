@@ -57,13 +57,20 @@ defmodule MinesweepersTest do
     assert revealed_and_empty == rows*cols
   end
 
-  test "flag a mine" do
-    board = Board.new(1, 1, 1)
+  test "interacting with mines" do
+    board = Board.new(1, 2, 1)
     {type, board} = Board.mark_square(board, {0, 0})
     assert type == :bomb
 
+    #FIXME: is this order specified?
     first = Board.list_squares(board) |> Enum.fetch!(0)
-    assert first == %Square{row: 0, col: 0, flagged: true, neighbors: 0, revealed: true, type: :bomb}
+    assert first == %Square{row: 0, col: 0, flagged: true, neighbors: 1, revealed: true, type: :bomb}
+
+    pos = {0, 1}
+    {type, board} = Board.hit_square(board, pos)
+    assert type == :bomb
+    first = Board.list_squares(board) |> Enum.fetch!(1)
+    assert first == %Square{row: 0, col: 1, flagged: false, neighbors: 1, revealed: true, type: :bomb}
 
   end
 end

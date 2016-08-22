@@ -1,6 +1,6 @@
 defmodule Minesweepers.Game.Square do
   alias Minesweepers.Game.Square
-  @types [:empty, :bomb, :flag]
+  @types [:empty, :bomb]
 
   defstruct [
     type: :empty,

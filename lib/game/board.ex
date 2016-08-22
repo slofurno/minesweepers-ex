@@ -28,8 +28,9 @@ defmodule Minesweepers.Game.Board do
 
   def hit_square(%Board{squares: squares} = board, {row, col} = pos) do
     case get_square(board, pos) do
-      #TODO: reveal bomb
-      %Square{type: :bomb} -> {:bomb, board}
+      %Square{type: :bomb} ->
+        squares1 = reveal_square(squares, pos)
+        {:bomb, %Board{board| squares: squares1}}
 
       %Square{type: :empty, revealed: false, flagged: false} ->
         {:ok, seen} = Stack.start_link
@@ -41,18 +42,22 @@ defmodule Minesweepers.Game.Board do
         #infos = Enum.map(flipped, fn x -> {x, next_squares[x]} end)
         {:empty, %Board{board| squares: squares1}, flipped}
 
-      _ -> {:error}
+      _ ->
+        {:ok}
     end
   end
 
   def mark_square(%Board{squares: squares} = board, pos) do
     case get_square(board, pos) do
-      %Square{type: :bomb, revealed: false} -> {:bomb}
+      %Square{type: :bomb, revealed: false} ->
         squares1 = flag_square(squares, pos)
         {:bomb, %Board{board| squares: squares1}}
 
-      %Square{type: :empty, revealed: false} -> {:empty}
-      _ -> {:ok}
+      %Square{type: :empty, revealed: false} ->
+        {:empty}
+
+      _ ->
+        {:ok}
 
     end
   end
@@ -72,6 +77,10 @@ defmodule Minesweepers.Game.Board do
     Enum.reduce(revealed, squares, fn c,a ->
       Map.put(a,c,%Square{a[c]| revealed: true})
     end)
+  end
+
+  defp reveal_square(squares, pos) do
+    Map.put(squares, pos, %Square{squares[pos]| revealed: true})
   end
 
   defp flag_square(squares, pos) do
@@ -106,11 +115,6 @@ defmodule Minesweepers.Game.Board do
     type == :bomb
   end
 
-  defp isEmpty2(board, pos) do
-    %Square{type: type} = get_square(board, pos)
-    type == :empty
-  end
-
   defp has_no_neighbors(board, pos) do
     %Square{neighbors: neighbors} = get_square(board, pos)
     neighbors == 0
@@ -119,13 +123,4 @@ defmodule Minesweepers.Game.Board do
   def get_square(%Board{squares: squares} = board, {row, col} = pos) do
     squares[pos]
   end
-
-  defp check(%Board{rows: rows, cols: cols}, {row, col}) when row < rows and col < cols and row >= 0 and col >= 0 do
-    :ok
-  end
-
-  defp check do
-    0
-  end
-
 end
