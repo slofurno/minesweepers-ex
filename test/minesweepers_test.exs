@@ -29,7 +29,9 @@ defmodule MinesweepersTest do
 
   test "flip all squares" do
     board = Board.new(2,2,0)
-    assert Board.hit_square(board, {1,1}) |> Enum.count == 4
+    {:empty, board, flipped} = Board.hit_square(board, {1,1})
+    assert flipped |> Enum.count == 4
+    IO.inspect(flipped)
 
   end
 end

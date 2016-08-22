@@ -26,29 +26,37 @@ defmodule Minesweepers.Game.Board do
     %Board{squares: squares, rows: rows, cols: cols}
   end
 
-  def hit_square(%Board{} = board, {row, col} = pos) do
+  def hit_square(%Board{squares: squares} = board, {row, col} = pos) do
     case get_square(board, pos) do
       %Square{type: :bomb} -> {:bomb}
       %Square{type: :empty} ->
         {:ok, seen} = Stack.start_link
-        {:empty, flip_empty(board, pos, seen)}
+        flip_empty(board, pos, seen)
         flipped = Stack.get_all(seen)
         Stack.stop(seen)
-        flipped
+        next_squares = reveal_squares(squares, flipped)
+        #|> Map.put(pos, %Square{squares[pos]| type: :flag})
+        #infos = Enum.map(flipped, fn x -> {x, next_squares[x]} end)
+        {:empty, %Board{board| squares: next_squares}, flipped}
       _ -> {:ok}
     end
   end
 
   defp flip_empty(%Board{squares: squares} = board, pos, seen) do
-    if isEmpty(board, pos) && !Stack.contains?(seen, pos) do
-      flip_square(board, pos)
+    if has_no_neighbors(board, pos) && !Stack.contains?(seen, pos) do
       Stack.push(seen, pos)
       neighbors(board, pos) |> Enum.map(&flip_empty(board, &1, seen))
     end
   end
 
-  defp flip_square(%Board{squares: squares} = board, pos) do
-    Map.put(board, pos, %Square{squares[pos]| type: :flag})
+  defp reveal_squares(squares, flipped) do
+    Enum.reduce(flipped, squares, fn c,a ->
+      Map.put(a,c,%Square{a[c]| type: :revealed})
+    end)
+  end
+
+  defp flag_square(squares, pos) do
+    Map.put(squares, pos, %Square{squares[pos]| type: :flag})
   end
 
   defp make_square(bomb_chance) do
@@ -79,9 +87,14 @@ defmodule Minesweepers.Game.Board do
     type == :bomb
   end
 
-  defp isEmpty(board, pos) do
+  defp isEmpty2(board, pos) do
     %Square{type: type} = get_square(board, pos)
     type == :empty
+  end
+
+  defp has_no_neighbors(board, pos) do
+    %Square{neighbors: neighbors} = get_square(board, pos)
+    neighbors == 0
   end
 
   def get_square(%Board{squares: squares} = board, {row, col} = pos) do
