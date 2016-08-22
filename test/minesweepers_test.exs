@@ -26,4 +26,10 @@ defmodule MinesweepersTest do
       {1,1} => %Square{neighbors: 3, type: :bomb}
     }
   end
+
+  test "flip all squares" do
+    board = Board.new(2,2,0)
+    assert Board.hit_square(board, {1,1}) |> Enum.count == 4
+
+  end
 end
