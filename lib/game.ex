@@ -62,7 +62,7 @@ defmodule Minesweepers.Game do
   def handle_call(%ClickEvent{player: player, pos: pos, right: true}, _from, %Game{board: board} = game) do
     case Board.mark_square(board, pos) do
       {:bomb, board} ->
-        broadcast(game, %FlagEvent{player: player, pos: pos})
+        broadcast(game, %RevealEvent{squares: [ board.squares[pos] ]})
         {:reply, :ok, %Game{game| board: board}}
 
       {:empty} ->
@@ -81,7 +81,7 @@ defmodule Minesweepers.Game do
         {:reply, :ok, %Game{game| board: board}}
 
       {:bomb, board} ->
-        broadcast(game, %BombEvent{pos: pos, player: player})
+        broadcast(game, %RevealEvent{squares: [ board.squares[pos] ]})
         {:reply, :explode, %Game{game| board: board}}
 
       {:ok} ->
