@@ -25,10 +25,11 @@ defmodule Minesweepers.Game do
   end
 
   def new do
-    board = Board.new(100, 100, 0.15)
-    game = %Game{board: board, id: Utils.uuid}
-    start_link(game)
-    game
+    new(150, 100, 0.10)
+    #board = Board.new(400, 400, 0.10)
+    #game = %Game{board: board, id: Utils.uuid}
+    #start_link(game)
+    #game
   end
 
   def start_link(%Game{id: id} = game) do

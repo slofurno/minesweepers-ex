@@ -41,6 +41,15 @@ defmodule MinesweepersTest do
     assert Game.player_click(click) == :explode
   end
 
+  test "has neighbors" do
+    board = Board.new(5, 5, 1)
+    mines = Board.neighbors(board, {2,2})
+    |> Enum.count
+
+    IO.inspect(Board.neighbors(board, {2,2}))
+    assert mines == 8
+  end
+
   test "reveal all squares" do
     rows = 10
     cols = 10

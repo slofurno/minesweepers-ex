@@ -3,6 +3,7 @@ defmodule Minesweepers.Game.Board do
   alias Minesweepers.Game.Square
   alias Minesweepers.Rand
   alias Minesweepers.Stack
+  alias Minesweepers.Utils
 
   defstruct [
     rows: 0,
@@ -11,18 +12,22 @@ defmodule Minesweepers.Game.Board do
   ]
 
   def new(rows, cols, chance) do
+    t0 = Utils.epoch_time
     squares = for row <- 0..rows-1,
       col <- 0..cols-1,
       into: %{},
       do: {{row, col}, make_square(chance, row, col)}
 
     board = %Board{squares: squares, rows: rows, cols: cols}
+    t1 = Utils.epoch_time
 
     squares = for row <- 0..rows-1,
       col <- 0..cols-1,
       into: %{},
       do: {{row, col}, with_neighbors(board, {row, col})}
 
+    t2 = Utils.epoch_time
+    IO.inspect({t0, t1, t2, t2-t1, t1-t0})
     %Board{squares: squares, rows: rows, cols: cols}
   end
 
@@ -92,24 +97,63 @@ defmodule Minesweepers.Game.Board do
 
   defp with_neighbors(%Board{squares: squares, rows: rows, cols: cols} = board, {row, col} = pos) do
     count = neighbors(board, pos)
-    |> Enum.filter(&isBomb(board, &1))
-    |> Enum.count
+    |> adjacent_bomb_count(board, 0)
+    #|> Enum.filter(&is_bomb(board, &1))
+    #|> Enum.count
 
     %Square{squares[pos]| neighbors: count }
   end
 
-  defp neighbors(%Board{squares: squares, rows: rows, cols: cols} = board, {row, col} = pos) do
-    for r <- row-1..row+1,
-      c <- col-1..col+1,
-      r != row || c != col,
-      r >= 0,
-      c >= 0,
-      r < rows,
-      c < cols,
-      do: {r, c}
+  @offsets [{-1,-1}, {-1,0}, {-1,1}, {0,-1}, {0,1}, {1,-1}, {1,0}, {1,1}]
+
+  defp valid_square({r, c} = pos, rows, cols) do
+    r >= 0 && c >= 0 && r < rows && c < cols
   end
 
-  defp isBomb(board, {_row, _col} = pos) do
+  # 5->6
+  defp adjacent_bomb_count([x|xs], board, n) do
+    if is_bomb(board, x) do
+      adjacent_bomb_count(xs, board, n+1)
+    else
+      adjacent_bomb_count(xs, board, n)
+    end
+  end
+
+  defp adjacent_bomb_count([], _board, n), do: n
+
+  # 4->5
+  defp valid_neighbors([x|xs], rows, cols, yys) do
+    if valid_square(x, rows, cols) do
+      valid_neighbors(xs, rows, cols, [x|yys])
+    else
+      valid_neighbors(xs, rows, cols, yys)
+    end
+  end
+
+  defp valid_neighbors([], _rows, _cols, yys), do: yys
+
+  def neighbors(%Board{squares: squares, rows: rows, cols: cols} = board, {row, col} = pos) do
+
+    # {600,200}
+    Enum.map(@offsets, fn {r,c} -> {r+row, c+col} end)
+    |> valid_neighbors(rows, cols, [])
+
+    # {900,200}
+    #|> Enum.filter(&valid_square(&1, rows, cols))
+    #|> Enum.filter(fn {r,c} -> r >= 0 && c >= 0 && r < rows && c < cols end)
+
+    #{800,200}
+    #for r <- row-1..row+1,
+    #  c <- col-1..col+1,
+    #  r != row || c != col,
+    #  r >= 0,
+    #  c >= 0,
+    #  r < rows,
+    #  c < cols,
+    #  do: {r, c}
+  end
+
+  defp is_bomb(board, {_row, _col} = pos) do
     %Square{type: type} = get_square(board, pos)
     type == :bomb
   end

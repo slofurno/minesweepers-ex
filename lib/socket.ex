@@ -36,7 +36,7 @@ defmodule Minesweepers.Socket do
         {:ok, req, %{account: account.id, game: gameid}, 480000}
 
       rr ->
-        IO.insect(rr)
+        IO.inspect(rr)
         {:shutdown, req}
     end
   end
