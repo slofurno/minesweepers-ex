@@ -11,6 +11,8 @@ defmodule Minesweepers.Game.Board do
     squares: %{}
   ]
 
+  @offsets [{-1,-1}, {-1,0}, {-1,1}, {0,-1}, {0,1}, {1,-1}, {1,0}, {1,1}]
+
   def new(rows, cols, chance) do
     t0 = Utils.epoch_time
     squares = for row <- 0..rows-1,
@@ -24,7 +26,7 @@ defmodule Minesweepers.Game.Board do
     squares = for row <- 0..rows-1,
       col <- 0..cols-1,
       into: %{},
-      do: {{row, col}, with_neighbors(board, {row, col})}
+      do: {{row, col}, count_adjacent_bombs(board, {row, col})}
 
     t2 = Utils.epoch_time
     IO.inspect({t0, t1, t2, t2-t1, t1-t0})
@@ -95,6 +97,31 @@ defmodule Minesweepers.Game.Board do
     if chance > Rand.next(), do: Square.new(:bomb, row, col), else: Square.new(:empty, row, col)
   end
 
+  defp count_adjacent_bombs_(%Board{squares: squares} = board, {_row, _col} = pos, [], n) do
+    %Square{squares[pos]| neighbors: n}
+  end
+
+  defp count_adjacent_bombs_(%Board{squares: squares, rows: rows, cols: cols} = board, {row, col} = pos, [x|xs], n) do
+    {r, c} = x
+    row = row + r
+    col = col + c
+
+    cond do
+      row < 0 || col < 0 || row >= rows || col >= cols ->
+        count_adjacent_bombs_(board, pos, xs, n)
+
+      is_bomb(board, {row, col}) ->
+        count_adjacent_bombs_(board, pos, xs, n + 1)
+
+      true ->
+        count_adjacent_bombs_(board, pos, xs, n)
+    end
+  end
+
+  defp count_adjacent_bombs(%Board{} = board, {_row, _col} = pos) do
+    count_adjacent_bombs_(board, pos, @offsets, 0)
+  end
+
   defp with_neighbors(%Board{squares: squares, rows: rows, cols: cols} = board, {row, col} = pos) do
     count = neighbors(board, pos)
     |> adjacent_bomb_count(board, 0)
@@ -104,7 +131,6 @@ defmodule Minesweepers.Game.Board do
     %Square{squares[pos]| neighbors: count }
   end
 
-  @offsets [{-1,-1}, {-1,0}, {-1,1}, {0,-1}, {0,1}, {1,-1}, {1,0}, {1,1}]
 
   defp valid_square({r, c} = pos, rows, cols) do
     r >= 0 && c >= 0 && r < rows && c < cols
@@ -165,5 +191,9 @@ defmodule Minesweepers.Game.Board do
 
   def get_square(%Board{squares: squares} = board, {row, col} = pos) do
     squares[pos]
+  end
+
+  defp square_at(squares, x, y) do
+    
   end
 end
