@@ -14,23 +14,29 @@ defmodule Minesweepers.Game.Board do
   @offsets [{-1,-1}, {-1,0}, {-1,1}, {0,-1}, {0,1}, {1,-1}, {1,0}, {1,1}]
 
   def new(rows, cols, chance) do
-    t0 = Utils.epoch_time
-    squares = for row <- 0..rows-1,
+    xs = for row <- 0..rows-1,
       col <- 0..cols-1,
-      into: %{},
-      do: {{row, col}, make_square(chance, row, col)}
+      do: {row, col}
 
-    board = %Board{squares: squares, rows: rows, cols: cols}
-    t1 = Utils.epoch_time
+    squares = populate_board(%{}, chance, xs)
+    |> populate_neighbors(rows, cols, xs)
 
-    squares = for row <- 0..rows-1,
-      col <- 0..cols-1,
-      into: %{},
-      do: {{row, col}, count_adjacent_bombs(board, {row, col})}
-
-    t2 = Utils.epoch_time
-    IO.inspect({t0, t1, t2, t2-t1, t1-t0})
     %Board{squares: squares, rows: rows, cols: cols}
+  end
+
+  defp populate_board(board, p, []), do: board
+
+  defp populate_board(board, p, [x|xs]) do
+    {row, col} = x
+    board = Map.put(board, x, make_square(p, row, col))
+    populate_board(board, p, xs)
+  end
+
+  defp populate_neighbors(squares, _rows, _cols, []), do: squares
+
+  defp populate_neighbors(squares, rows, cols, [x|xs]) do
+    squares = Map.put(squares, x, count_adjacent_bombs(squares, rows, cols, x))
+    populate_neighbors(squares, rows, cols, xs)
   end
 
   def hit_square(%Board{squares: squares} = board, {row, col} = pos) do
@@ -97,29 +103,30 @@ defmodule Minesweepers.Game.Board do
     if chance > Rand.next(), do: Square.new(:bomb, row, col), else: Square.new(:empty, row, col)
   end
 
-  defp count_adjacent_bombs_(%Board{squares: squares} = board, {_row, _col} = pos, [], n) do
+  defp count_adjacent_bombs_(squares, _rows, _cols, {_row, _col} = pos, [], n) do
     %Square{squares[pos]| neighbors: n}
   end
 
-  defp count_adjacent_bombs_(%Board{squares: squares, rows: rows, cols: cols} = board, {row, col} = pos, [x|xs], n) do
+  defp count_adjacent_bombs_(squares, rows, cols, {row, col} = pos, [x|xs], n) do
     {r, c} = x
     row = row + r
     col = col + c
 
     cond do
       row < 0 || col < 0 || row >= rows || col >= cols ->
-        count_adjacent_bombs_(board, pos, xs, n)
+        count_adjacent_bombs_(squares, rows, cols, pos, xs, n)
 
-      is_bomb(board, {row, col}) ->
-        count_adjacent_bombs_(board, pos, xs, n + 1)
+      squares[{row,col}].type == :bomb ->
+      #is_bomb(board, {row, col}) ->
+        count_adjacent_bombs_(squares, rows, cols, pos, xs, n + 1)
 
       true ->
-        count_adjacent_bombs_(board, pos, xs, n)
+        count_adjacent_bombs_(squares, rows, cols, pos, xs, n)
     end
   end
 
-  defp count_adjacent_bombs(%Board{} = board, {_row, _col} = pos) do
-    count_adjacent_bombs_(board, pos, @offsets, 0)
+  defp count_adjacent_bombs(squares, rows, cols, {_row, _col} = pos) do
+    count_adjacent_bombs_(squares, rows, cols, pos, @offsets, 0)
   end
 
   defp with_neighbors(%Board{squares: squares, rows: rows, cols: cols} = board, {row, col} = pos) do
@@ -194,6 +201,5 @@ defmodule Minesweepers.Game.Board do
   end
 
   defp square_at(squares, x, y) do
-    
   end
 end

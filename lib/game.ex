@@ -32,6 +32,13 @@ defmodule Minesweepers.Game do
     #game
   end
 
+  def profile_board do
+    t0 = :os.system_time(:milli_seconds)
+    for _ <- 0..9, do: Board.new(400,400,0.1)
+    t1 = :os.system_time(:milli_seconds)
+    t1 - t0
+  end
+
   def start_link(%Game{id: id} = game) do
     GenServer.start_link(__MODULE__, game, name: via_tuple(id))
   end
