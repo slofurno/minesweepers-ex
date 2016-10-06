@@ -1,6 +1,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <erl_nif.h>
+#include <stdint.h>
+#include <stddef.h>
+#include <string.h>
+#include <time.h>
 
 typedef struct {
     char type;
@@ -9,84 +13,82 @@ typedef struct {
 
 #define BOMB 1 << 7
 #define EMPTY 0
-#define ROWS 400
-#define COLS 400
 
 float next_rand() {
     return (float)rand() / RAND_MAX;
 }
 
 unsigned char*
-get_square(unsigned char *squares, int x, int y) {
-    return squares + (y * COLS + x);
+get_square(unsigned char *squares, int x, int y, int cols) {
+    return squares + (y * cols + x);
 }
 
-void find_neighbors(unsigned char *squares, int x, int y) {
+void find_neighbors(unsigned char *squares, int x, int y, int rows, int cols) {
     unsigned char *s;// = get_square(squares, x, y);
     int n = 0;
 
-    for(int j = -1; j <= 1; j++) {
-        for(int i = -1; i<=1; i++) {
-            if ((i == 0 && j == 0) || x < 0 || y < 0 || x >= COLS || y >= ROWS) { continue; }
+    for(int j = y-1; j <= y+1; j++) {
+        for(int i = x-1; i <= x+1; i++) {
+            if ((i == x && j == y) || i < 0 || j < 0 || j >= rows|| i >= cols) { continue; }
 
-            s = get_square(squares, x+i, y+j);
+            s = get_square(squares, i, j, cols);
             if (*s & BOMB) {
                 n++;
             }
         }
     }
 
-    *get_square(squares, x, y) |= n;
+    *get_square(squares, x, y, cols) |= n;
 }
 
 static ERL_NIF_TERM generate_minefield(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[]) {
     ERL_NIF_TERM ret;
-    unsigned char *squares = enif_make_new_binary(env, ROWS*COLS, &ret);
+    /*
+    clock_t start, end;
+    double cpu_time_used;
+    start = clock();
+    */
+    double chance;
+    int rows;
+    int cols;
+
+    if (!enif_get_int(env, argv[0], &rows)) {
+        return enif_make_badarg(env);
+    }
+
+    if (!enif_get_int(env, argv[1], &cols)) {
+        return enif_make_badarg(env);
+    }
+
+    if (!enif_get_double(env, argv[2], &chance)){
+        return enif_make_badarg(env);
+    }
+
+    unsigned char *squares = enif_make_new_binary(env, rows*cols, &ret);
 
     unsigned char *x = squares;
-    for(int i = 0; i < ROWS*COLS; i++) {
+    for(int i = 0; i < rows*cols; i++) {
         x++;
-        *x = (next_rand() > 0.1) ? EMPTY : BOMB;
+        *x = (next_rand() > chance) ? EMPTY : BOMB;
     }
 
-    for(int j = 0; j < ROWS; j++) {
-        for(int i = 0; i<COLS; i++) {
-            find_neighbors(squares, i, j);
+    for(int j = 0; j < rows; j++) {
+        for(int i = 0; i<cols; i++) {
+            find_neighbors(squares, i, j, rows, cols);
         }
     }
+
+    //end = clock();
+    //cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
+    //printf("time: %lf\n", cpu_time_used);
 
     return ret;
 }
 
 
 static ErlNifFunc nif_funcs[] = {
-    {"generate_minefield", 0, generate_minefield},
+    {"generate_minefield", 3, generate_minefield},
 };
 
 ERL_NIF_INIT(Elixir.Minefield, nif_funcs, NULL, NULL, NULL, NULL)
 
-int main() {
-
-    unsigned char squares[ROWS*COLS];
-
-    for(int i = 0; i < ROWS*COLS; i++) {
-        squares[i] = (next_rand() > 0.1) ? EMPTY : BOMB;
-    }
-
-    for(int j = 0; j < ROWS; j++) {
-        for(int i = 0; i<COLS; i++) {
-            find_neighbors(squares, i, j);
-        }
-    }
-
-    for(int j = 0; j < 15; j++) {
-        for(int i = 0; i<15; i++) {
-            int n = j * COLS + i;
-            char s = squares[n];
-            printf("{%d,%d} ", (s & BOMB) >> 7, s & 7);
-        }
-        printf("\n");
-    }
-
-    return 0;
-}

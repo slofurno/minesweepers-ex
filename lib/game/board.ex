@@ -16,7 +16,7 @@ defmodule Minesweepers.Game.Board do
   @bomb_mask 1 <<< 7
 
   def new(rows, cols, chance) do
-    squares = for <<n::8 <- Minefield.generate_minefield()>>,
+    squares = for <<n::8 <- Minefield.generate_minefield(rows, cols, chance)>>,
     do: unpack_square(n)
 
     xs = for row <- 0..rows-1,
@@ -31,7 +31,8 @@ defmodule Minesweepers.Game.Board do
   defp map_zip([], [], p), do: p
 
   defp map_zip([x|xs], [y|ys], p) do
-    p = Map.put(p, x, y)
+    {row, col} = x
+    p = Map.put(p, x, %Square{y|row: row, col: col })
     map_zip(xs, ys, p)
   end
 
