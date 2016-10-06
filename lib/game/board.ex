@@ -4,6 +4,7 @@ defmodule Minesweepers.Game.Board do
   alias Minesweepers.Rand
   alias Minesweepers.Stack
   alias Minesweepers.Utils
+  use Bitwise
 
   defstruct [
     rows: 0,
@@ -12,8 +13,39 @@ defmodule Minesweepers.Game.Board do
   ]
 
   @offsets [{-1,-1}, {-1,0}, {-1,1}, {0,-1}, {0,1}, {1,-1}, {1,0}, {1,1}]
+  @bomb_mask 1 <<< 7
 
   def new(rows, cols, chance) do
+    squares = for <<n::8 <- Minefield.generate_minefield()>>,
+    do: unpack_square(n)
+
+    xs = for row <- 0..rows-1,
+      col <- 0..cols-1,
+      do: {row, col}
+
+    squares = map_zip(xs, squares, %{})
+
+    %Board{squares: squares, rows: rows, cols: cols}
+  end
+
+  defp map_zip([], [], p), do: p
+
+  defp map_zip([x|xs], [y|ys], p) do
+    p = Map.put(p, x, y)
+    map_zip(xs, ys, p)
+  end
+
+  defp unpack_square(n) do
+    neighbors = n &&& 7
+    type = if (n &&& @bomb_mask) == @bomb_mask, do: :bomb, else: :empty
+
+    %Square{
+      type: type,
+      neighbors: neighbors
+    }
+  end
+
+  def new_native(rows, cols, chance) do
     xs = for row <- 0..rows-1,
       col <- 0..cols-1,
       do: {row, col}

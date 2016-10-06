@@ -33,10 +33,15 @@ defmodule Minesweepers.Game do
   end
 
   def profile_board do
-    t0 = :os.system_time(:milli_seconds)
-    for _ <- 0..9, do: Board.new(400,400,0.1)
-    t1 = :os.system_time(:milli_seconds)
-    t1 - t0
+    Board.new(400, 400, 0.10)
+    Board.new(400, 400, 0.10)
+    Board.new(400, 400, 0.10)
+    Enum.map(0..49, fn _ ->
+      t0 = :os.system_time(:milli_seconds)
+      Board.new(400, 400, 0.10)
+      t1 = :os.system_time(:milli_seconds)
+      t1 - t0
+    end)
   end
 
   def start_link(%Game{id: id} = game) do
