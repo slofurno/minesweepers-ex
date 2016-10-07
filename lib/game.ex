@@ -20,16 +20,12 @@ defmodule Minesweepers.Game do
   def new(rows, cols, chance) do
     board = Board.new(rows, cols, chance)
     game = %Game{board: board, id: Utils.uuid}
-    start_link(game)
+    Minesweepers.Game.Supervisor.start_game(game)
     game
   end
 
   def new do
     new(100, 100, 0.10)
-    #board = Board.new(400, 400, 0.10)
-    #game = %Game{board: board, id: Utils.uuid}
-    #start_link(game)
-    #game
   end
 
   def profile_board do
