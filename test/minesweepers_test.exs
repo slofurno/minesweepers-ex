@@ -11,7 +11,7 @@ defmodule MinesweepersTest do
   end
 
   test "game board creation" do
-    %Board{cols: cols, rows: rows, squares: squares} = Board.new(2,2,0)
+    %Board{cols: cols, rows: rows, squares: squares} = Board.new(2,2,0.0)
     assert squares == %{
       {0,0} => %Square{neighbors: 0, type: :empty, row: 0, col: 0},
       {0,1} => %Square{neighbors: 0, type: :empty, row: 0, col: 1},
@@ -19,7 +19,7 @@ defmodule MinesweepersTest do
       {1,1} => %Square{neighbors: 0, type: :empty, row: 1, col: 1}
     }
 
-    %Board{cols: cols, rows: rows, squares: squares} = Board.new(2,2,1)
+    %Board{cols: cols, rows: rows, squares: squares} = Board.new(2,2,1.0)
     assert squares == %{
       {0,0} => %Square{neighbors: 3, type: :bomb, row: 0, col: 0},
       {0,1} => %Square{neighbors: 3, type: :bomb, row: 0, col: 1},
@@ -29,20 +29,20 @@ defmodule MinesweepersTest do
   end
 
   test "flip all squares" do
-    board = Board.new(2,2,0)
+    board = Board.new(2,2,0.0)
     {:empty, board, flipped} = Board.hit_square(board, {1,1})
     assert flipped |> Enum.count == 4
     IO.inspect(flipped)
   end
 
   test "hitting a mine" do
-    game = Game.new(10, 10, 1)
+    game = Game.new(10, 10, 1.0)
     click = %Minesweepers.ClickEvent{game: game.id, pos: {4,4}}
     assert Game.player_click(click) == :explode
   end
 
   test "has neighbors" do
-    board = Board.new(5, 5, 1)
+    board = Board.new(5, 5, 1.0)
     mines = Board.neighbors(board, {2,2})
     |> Enum.count
 
@@ -54,7 +54,7 @@ defmodule MinesweepersTest do
     rows = 10
     cols = 10
 
-    game = Game.new(rows, cols, 0)
+    game = Game.new(rows, cols, 0.0)
     click = %Minesweepers.ClickEvent{game: game.id, pos: {4,4}}
     Game.player_click(click)
     state = Game.get_state(game.id)
@@ -67,7 +67,7 @@ defmodule MinesweepersTest do
   end
 
   test "interacting with mines" do
-    board = Board.new(1, 2, 1)
+    board = Board.new(1, 2, 1.0)
     {type, board} = Board.mark_square(board, {0, 0})
     assert type == :bomb
 
@@ -81,5 +81,23 @@ defmodule MinesweepersTest do
     first = Board.list_squares(board) |> Enum.fetch!(1)
     assert first == %Square{row: 0, col: 1, flagged: false, neighbors: 1, revealed: true, type: :bomb}
 
+  end
+
+  test "nif neighbor calc" do
+    b = Board.new(1000,1000,0.5)
+
+    p = 901
+    xs = for y <- p-1..p+1,
+    x <- p-1..p+1,
+    y != p || x != p,
+    do: {x, y}
+
+
+    neighbors = xs
+    |> Enum.map(fn x -> b.squares[x] end)
+    |> Enum.filter(fn x -> x.type == :bomb end)
+    |> Enum.count
+
+    assert neighbors == b.squares[{p,p}].neighbors
   end
 end
