@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <sys/time.h>
 #include <erl_nif.h>
 #include <stdint.h>
 #include <stddef.h>
@@ -13,7 +14,8 @@ typedef struct {
 
 #define BOMB 1 << 7
 #define EMPTY 0
-#define NIF_ITERS 150000
+#define ITERS_GUESS 15000
+#define TARGET_MICROS 900
 
 struct binary_resource {
     unsigned size;
@@ -56,18 +58,20 @@ min (int a, int b) {
 
 static ERL_NIF_TERM
 generate_minefield_n(ErlNifEnv *env, int argc, const ERL_NIF_TERM *argv) {
-    ERL_NIF_TERM newargv[5];
+    ERL_NIF_TERM newargv[6];
     double chance;
     int rows;
     int cols;
     void* res;
     int offset;
+    int iters;
 
     if (!enif_get_int(env, argv[0], &rows) ||
         !enif_get_int(env, argv[1], &cols) ||
         !enif_get_double(env, argv[2], &chance) ||
         !enif_get_resource(env, argv[3], binary_resource_type, &res) ||
-        !enif_get_int(env, argv[4], &offset)) {
+        !enif_get_int(env, argv[4], &offset) ||
+        !enif_get_int(env, argv[5], &iters)) {
         return enif_make_badarg(env);
     }
     unsigned char *squares = (unsigned char*)res;
@@ -75,17 +79,23 @@ generate_minefield_n(ErlNifEnv *env, int argc, const ERL_NIF_TERM *argv) {
     int j = offset / cols;
     int c = 0;
 
+    struct timeval start;
+    struct timeval end;
+    gettimeofday(&start, NULL);
+
     for(; j < rows; j++) {
         for(; i<cols; i++) {
             find_neighbors(squares, i, j, rows, cols);
-            if (++c == NIF_ITERS) {
-                goto done;
-            }
+            if (++c == iters) goto done;
         }
         i=0;
     }
 
 done:
+
+    gettimeofday(&end, NULL);
+    suseconds_t dt = end.tv_usec - start.tv_usec;
+    //printf("n > iters: %d, elapsed ms: %ld\n", iters, dt);
 
     if (offset + c == rows * cols) {
         return enif_make_resource_binary(env, res, res, rows*cols);
@@ -95,34 +105,47 @@ done:
     newargv[1] = argv[1];
     newargv[2] = argv[2];
     newargv[3] = argv[3];
-    newargv[4] = enif_make_int(env, offset + NIF_ITERS);
+    newargv[4] = enif_make_int(env, offset + iters);
+    int next_iter = ((TARGET_MICROS * iters) / dt + iters)/2;
+    newargv[5] = enif_make_int(env, next_iter);
     return enif_schedule_nif(env, "generate_minefield_n", 0,
-            generate_minefield_n, 5, newargv);
+            generate_minefield_n, 6, newargv);
 
 }
 
 static ERL_NIF_TERM
 generate_minefield_i(ErlNifEnv *env, int argc, const ERL_NIF_TERM *argv) {
-    ERL_NIF_TERM newargv[5];
+    ERL_NIF_TERM newargv[6];
     double chance;
     int rows;
     int cols;
     void* res;
     int offset;
+    int iters;
 
     if (!enif_get_int(env, argv[0], &rows) ||
         !enif_get_int(env, argv[1], &cols) ||
         !enif_get_double(env, argv[2], &chance) ||
         !enif_get_resource(env, argv[3], binary_resource_type, &res) ||
-        !enif_get_int(env, argv[4], &offset)) {
+        !enif_get_int(env, argv[4], &offset) ||
+        !enif_get_int(env, argv[5], &iters)) {
         return enif_make_badarg(env);
     }
+
+    struct timeval start;
+    struct timeval end;
+    gettimeofday(&start, NULL);
+
     unsigned char *squares = (unsigned char*)res;
     int i;
-    int c = min(offset + NIF_ITERS, rows*cols);
+    int c = min(offset + iters, rows*cols);
     for(i = offset; i < c; i++) {
         squares[i] = (next_rand() > chance) ? EMPTY : BOMB;
     }
+
+    gettimeofday(&end, NULL);
+    suseconds_t dt = end.tv_usec - start.tv_usec;
+    //printf("i > iters: %d, elapsed ms: %ld\n", iters, dt);
 
     newargv[0] = argv[0];
     newargv[1] = argv[1];
@@ -131,19 +154,23 @@ generate_minefield_i(ErlNifEnv *env, int argc, const ERL_NIF_TERM *argv) {
 
     if (i == rows*cols) {
         newargv[4] = enif_make_int(env, 0);
+        newargv[5] = argv[5];
+
         return enif_schedule_nif(env, "generate_minefield_n", 0,
-                generate_minefield_n, 5, newargv);
+                generate_minefield_n, 6, newargv);
     }
 
+    int next_iter = ((TARGET_MICROS * iters) / dt + iters)/2;
+    newargv[5] = enif_make_int(env, next_iter);
     newargv[4] = enif_make_int(env, i);
     return enif_schedule_nif(env, "generate_minefield_i", 0,
-            generate_minefield_i, 5, newargv);
+            generate_minefield_i, 6, newargv);
 }
 
 
 static ERL_NIF_TERM
 generate_minefield(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[]) {
-    ERL_NIF_TERM newargv[5];
+    ERL_NIF_TERM newargv[6];
     double chance;
     int rows;
     int cols;
@@ -161,11 +188,12 @@ generate_minefield(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[]) {
     newargv[2] = argv[2];
     newargv[3] = enif_make_resource(env, res);
     newargv[4] = enif_make_int(env, 0);
+    newargv[5] = enif_make_int(env, ITERS_GUESS);
 
     enif_release_resource(res);
 
     return enif_schedule_nif(env, "generate_minefield_i", 0,
-            generate_minefield_i, 5, newargv);
+            generate_minefield_i, 6, newargv);
 }
 
 
