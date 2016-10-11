@@ -1,5 +1,5 @@
-defmodule Minesweepers.Game.Square do
-  alias Minesweepers.Game.Square
+defmodule Minesweepers.Game.Squarex do
+  alias Minesweepers.Game.Squarex
   import Minesweepers.Records
   @types [:empty, :bomb]
 
@@ -22,6 +22,6 @@ defmodule Minesweepers.Game.Square do
     {:error, "bad type"}
   end
 
-  def is_revealed(%Square{revealed: revealed}), do: revealed
+  def is_revealed(%Squarex{revealed: revealed}), do: revealed
 end
 

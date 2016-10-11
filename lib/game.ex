@@ -48,8 +48,15 @@ defmodule Minesweepers.Game do
     GenServer.start_link(__MODULE__, game, name: via_tuple(id))
   end
 
-  def add_player(game, player) do
+  def loop do
+    loop(Minesweepers.Game.Board.new(2000,2000,0.15))
+  end
 
+  def loop(m) do
+    receive do
+      {sender} -> send(sender, {:ok, m})
+    end
+    loop(m)
   end
 
   def list_games do
