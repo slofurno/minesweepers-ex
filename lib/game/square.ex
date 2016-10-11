@@ -1,5 +1,6 @@
 defmodule Minesweepers.Game.Square do
   alias Minesweepers.Game.Square
+  import Minesweepers.Records
   @types [:empty, :bomb]
 
   defstruct [
@@ -11,8 +12,10 @@ defmodule Minesweepers.Game.Square do
     col: -1
   ]
 
+
   def new(type, row, col) when type in @types do
-    %Square{type: type, row: row, col: col}
+    square(type: type, neighbors: 0, row: row, col: col)
+    #%Square{type: type, row: row, col: col}
   end
 
   def new(_type) do
@@ -21,3 +24,4 @@ defmodule Minesweepers.Game.Square do
 
   def is_revealed(%Square{revealed: revealed}), do: revealed
 end
+

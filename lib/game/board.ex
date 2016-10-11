@@ -1,4 +1,5 @@
 defmodule Minesweepers.Game.Board do
+  import Minesweepers.Records
   alias Minesweepers.Game.Board
   alias Minesweepers.Game.Square
   alias Minesweepers.Rand
@@ -16,34 +17,28 @@ defmodule Minesweepers.Game.Board do
   @bomb_mask 1 <<< 7
 
   def new(rows, cols, chance) do
-    squares = for <<n::8 <- Minefield.generate_minefield(rows, cols, chance)>>,
-    do: unpack_square(n)
+    bytes = Minefield.generate_minefield(rows, cols, chance)
 
     xs = for row <- 0..rows-1,
       col <- 0..cols-1,
       do: {row, col}
 
-    squares = map_zip(xs, squares, %{})
+    squares = map_zip(xs, bytes, %{})
 
     %Board{squares: squares, rows: rows, cols: cols}
   end
 
-  defp map_zip([], [], p), do: p
+  defp map_zip([], _, p), do: p
 
-  defp map_zip([x|xs], [y|ys], p) do
-    {row, col} = x
-    p = Map.put(p, x, %Square{y|row: row, col: col })
-    map_zip(xs, ys, p)
+  defp map_zip([x|xs], <<n :: 8, rest :: binary>>, p) do
+    map_zip(xs, rest, Map.put(p, x, unpack_square(n,x)))
   end
 
-  defp unpack_square(n) do
+  defp unpack_square(n, {row, col}) do
     neighbors = n &&& 7
     type = if (n &&& @bomb_mask) == @bomb_mask, do: :bomb, else: :empty
 
-    %Square{
-      type: type,
-      neighbors: neighbors
-    }
+    %Square{ type: type, neighbors: neighbors, row: row, col: col }
   end
 
   def new_native(rows, cols, chance) do
