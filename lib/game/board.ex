@@ -38,7 +38,7 @@ defmodule Minesweepers.Game.Board do
     neighbors = n &&& 7
     type = if (n &&& @bomb_mask) == @bomb_mask, do: :bomb, else: :empty
 
-    %Square{ type: type, neighbors: neighbors, row: row, col: col }
+    square(type: type, neighbors: neighbors, row: row, col: col)
   end
 
   def new_native(rows, cols, chance) do
@@ -69,11 +69,11 @@ defmodule Minesweepers.Game.Board do
 
   def hit_square(%Board{squares: squares} = board, {row, col} = pos) do
     case get_square(board, pos) do
-      %Square{type: :bomb} ->
+      square(type: :bomb) ->
         squares1 = reveal_square(squares, pos)
         {:bomb, %Board{board| squares: squares1}}
 
-      %Square{type: :empty, revealed: false, flagged: false} ->
+      square(type: :empty, revealed: false, flagged: false) ->
         flipped = flip_empty(board, pos)
         squares1 = reveal_squares(squares, flipped)
         {:empty, %Board{board| squares: squares1}, flipped}
@@ -85,11 +85,11 @@ defmodule Minesweepers.Game.Board do
 
   def mark_square(%Board{squares: squares} = board, pos) do
     case get_square(board, pos) do
-      %Square{type: :bomb, revealed: false} ->
+      square(type: :bomb, revealed: false) ->
         squares1 = flag_square(squares, pos)
         {:bomb, %Board{board| squares: squares1}}
 
-      %Square{type: :empty, revealed: false} ->
+      square(type: :empty, revealed: false) ->
         {:empty}
 
       _ ->
@@ -115,24 +115,24 @@ defmodule Minesweepers.Game.Board do
 
   defp reveal_squares(squares, revealed) do
     Enum.reduce(revealed, squares, fn c,a ->
-      Map.put(a,c,%Square{a[c]| revealed: true})
+      Map.put(a, c, square(a[c], revealed: true))
     end)
   end
 
   defp reveal_square(squares, pos) do
-    Map.put(squares, pos, %Square{squares[pos]| revealed: true})
+    Map.put(squares, pos, square(squares[pos], revealed: true))
   end
 
   defp flag_square(squares, pos) do
-    Map.put(squares, pos, %Square{squares[pos]| revealed: true, flagged: true})
+    Map.put(squares, pos, square(squares[pos], revealed: true, flagged: true))
   end
 
   defp make_square(chance, row, col) do
-    if chance > Rand.next(), do: Square.new(:bomb, row, col), else: Square.new(:empty, row, col)
+    #if chance > Rand.next(), do: Square.new(:bomb, row, col), else: Square.new(:empty, row, col)
   end
 
   defp count_adjacent_bombs_(squares, _rows, _cols, {_row, _col} = pos, [], n) do
-    %Square{squares[pos]| neighbors: n}
+    #%Square{squares[pos]| neighbors: n}
   end
 
   defp count_adjacent_bombs_(squares, rows, cols, {row, col} = pos, [x|xs], n) do
@@ -215,12 +215,12 @@ defmodule Minesweepers.Game.Board do
   end
 
   defp is_bomb(board, {_row, _col} = pos) do
-    %Square{type: type} = get_square(board, pos)
+    square(type: type) = get_square(board, pos)
     type == :bomb
   end
 
   defp has_no_neighbors(board, pos) do
-    %Square{neighbors: neighbors} = get_square(board, pos)
+    square(neighbors: neighbors) = get_square(board, pos)
     neighbors == 0
   end
 

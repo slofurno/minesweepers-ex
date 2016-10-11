@@ -9,6 +9,7 @@ defmodule Minesweepers.Game do
   alias Minesweepers.BombEvent
   alias Minesweepers.PlayerEvent
   alias Minesweepers.Utils
+  import Minesweepers.Records
 
   defstruct [
     id: "",
@@ -66,15 +67,19 @@ defmodule Minesweepers.Game do
     whereis(game) |> GenServer.call(:state)
   end
 
+  defp is_revealed(square(revealed: revealed)), do: revealed
+
   def visible_state(game) do
     %Game{board: board, players: players} = get_state(game)
-    Board.list_squares(board) |> Enum.filter(&Square.is_revealed/1)
+    Board.list_squares(board)
+      |> Enum.filter(&is_revealed/1)
+      |> Enum.map(&to_struct/1)
   end
 
   def handle_call(%ClickEvent{player: player, pos: pos, right: true}, _from, %Game{board: board} = game) do
     case Board.mark_square(board, pos) do
       {:bomb, board} ->
-        broadcast(game, %RevealEvent{squares: [ board.squares[pos] ]})
+        broadcast(game, %RevealEvent{squares: [ to_struct(board.squares[pos]) ]})
         {:reply, :ok, %Game{game| board: board}}
 
       {:empty} ->
@@ -88,12 +93,14 @@ defmodule Minesweepers.Game do
   def handle_call(%ClickEvent{player: player, pos: pos}, _from, %Game{board: board} = game) do
     case Board.hit_square(board, pos) do
       {:empty, board, flipped} ->
-        updated = Enum.map(flipped, fn x -> board.squares[x] end)
+        updated = flipped
+          |> Enum.map(fn x -> board.squares[x] end)
+          |> Enum.map(&to_struct/1)
         broadcast(game, %RevealEvent{squares: updated})
         {:reply, :ok, %Game{game| board: board}}
 
       {:bomb, board} ->
-        broadcast(game, %RevealEvent{squares: [ board.squares[pos] ]})
+        broadcast(game, %RevealEvent{squares: [ to_struct(board.squares[pos]) ]})
         {:reply, :explode, %Game{game| board: board}}
 
       {:ok} ->

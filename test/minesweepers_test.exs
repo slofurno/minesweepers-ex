@@ -1,6 +1,7 @@
 defmodule MinesweepersTest do
   use ExUnit.Case, async: true
   use Plug.Test
+  import Minesweepers.Records
   alias Minesweepers.Game
   alias Minesweepers.Game.Board
   alias Minesweepers.Game.Square
@@ -13,18 +14,18 @@ defmodule MinesweepersTest do
   test "game board creation" do
     %Board{cols: cols, rows: rows, squares: squares} = Board.new(2,2,0.0)
     assert squares == %{
-      {0,0} => %Square{neighbors: 0, type: :empty, row: 0, col: 0},
-      {0,1} => %Square{neighbors: 0, type: :empty, row: 0, col: 1},
-      {1,0} => %Square{neighbors: 0, type: :empty, row: 1, col: 0},
-      {1,1} => %Square{neighbors: 0, type: :empty, row: 1, col: 1}
+      {0,0} => square(neighbors: 0, type: :empty, row: 0, col: 0),
+      {0,1} => square(neighbors: 0, type: :empty, row: 0, col: 1),
+      {1,0} => square(neighbors: 0, type: :empty, row: 1, col: 0),
+      {1,1} => square(neighbors: 0, type: :empty, row: 1, col: 1)
     }
 
     %Board{cols: cols, rows: rows, squares: squares} = Board.new(2,2,1.0)
     assert squares == %{
-      {0,0} => %Square{neighbors: 3, type: :bomb, row: 0, col: 0},
-      {0,1} => %Square{neighbors: 3, type: :bomb, row: 0, col: 1},
-      {1,0} => %Square{neighbors: 3, type: :bomb, row: 1, col: 0},
-      {1,1} => %Square{neighbors: 3, type: :bomb, row: 1, col: 1}
+      {0,0} => square(neighbors: 3, type: :bomb, row: 0, col: 0),
+      {0,1} => square(neighbors: 3, type: :bomb, row: 0, col: 1),
+      {1,0} => square(neighbors: 3, type: :bomb, row: 1, col: 0),
+      {1,1} => square(neighbors: 3, type: :bomb, row: 1, col: 1)
     }
   end
 
@@ -59,8 +60,13 @@ defmodule MinesweepersTest do
     Game.player_click(click)
     state = Game.get_state(game.id)
 
+    is_revealed_and_empty = fn
+      square(revealed: true, type: :empty) -> true
+      _ -> false
+    end
+
     revealed_and_empty = Board.list_squares(state.board)
-    |> Enum.filter(fn square -> square.revealed && square.type == :empty end)
+    |> Enum.filter(is_revealed_and_empty)
     |> Enum.count
 
     assert revealed_and_empty == rows*cols
@@ -73,13 +79,13 @@ defmodule MinesweepersTest do
 
     #FIXME: is this order specified?
     first = Board.list_squares(board) |> Enum.fetch!(0)
-    assert first == %Square{row: 0, col: 0, flagged: true, neighbors: 1, revealed: true, type: :bomb}
+    assert first == square(row: 0, col: 0, flagged: true, neighbors: 1, revealed: true, type: :bomb)
 
     pos = {0, 1}
     {type, board} = Board.hit_square(board, pos)
     assert type == :bomb
     first = Board.list_squares(board) |> Enum.fetch!(1)
-    assert first == %Square{row: 0, col: 1, flagged: false, neighbors: 1, revealed: true, type: :bomb}
+    assert first == square(row: 0, col: 1, flagged: false, neighbors: 1, revealed: true, type: :bomb)
 
   end
 
@@ -92,12 +98,19 @@ defmodule MinesweepersTest do
     y != p || x != p,
     do: {x, y}
 
+    is_bomb = fn
+      square(type: :bomb) -> true
+      _ -> false
+    end
 
     neighbors = xs
     |> Enum.map(fn x -> b.squares[x] end)
-    |> Enum.filter(fn x -> x.type == :bomb end)
+    |> Enum.filter(is_bomb)
     |> Enum.count
 
-    assert neighbors == b.squares[{p,p}].neighbors
+
+    square(neighbors: computed_neighbors) = b.squares[{p,p}]
+
+    assert neighbors == computed_neighbors
   end
 end
