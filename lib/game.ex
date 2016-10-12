@@ -74,20 +74,16 @@ defmodule Minesweepers.Game do
     whereis(game) |> GenServer.call(:state)
   end
 
-  #defp is_revealed(square(revealed: revealed)), do: revealed
-  defp is_revealed(square(state: state)) do
+  def get_initial_state(game) do
+    whereis(game) |> GenServer.call(:initial_state)
+  end
+
+  defp is_revealed?(square(state: state)) do
     case state do
       :unrevealed_empty -> false
       :unrevealed_bomb -> false
       _ -> true
     end
-  end
-
-  def visible_state(game) do
-    %Game{board: board, players: players} = get_state(game)
-    Board.list_squares(board)
-      |> Enum.filter(&is_revealed/1)
-      |> Enum.map(&to_struct/1)
   end
 
   def handle_call(%ClickEvent{player: player, pos: pos, right: true}, _from, %Game{board: board} = game) do
@@ -129,6 +125,19 @@ defmodule Minesweepers.Game do
       broadcast(game, %PlayerEvent{player: player, message: "joined"})
       {:reply, :ok, %Game{game| players: [player| players]}}
     end
+  end
+
+  def handle_call(:initial_state, _from, %Game{ board: %Board{squares: squares, rows: rows, cols: cols} } = state) do
+    xs = for row <- 0..rows-1,
+    col <- 0..cols-1,
+    do: {row, col}
+
+    ys = List.foldl(xs, [], fn(x, ys) ->
+      if is_revealed?(squares[x]), do: [squares[x]| ys], else: ys
+    end)
+    |> Enum.map(&to_struct/1)
+
+    {:reply, %{rows: rows, cols: cols, squares: ys}, state}
   end
 
   def handle_call(:state, _from, state) do

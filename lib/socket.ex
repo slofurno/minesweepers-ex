@@ -60,7 +60,7 @@ defmodule Minesweepers.Socket do
 
   def websocket_info({:init, game}, req, state) do
     Game.subscribe(game)
-    res = %{type: "init", state: Game.visible_state(game)} |> Poison.encode!
+    res = %{type: "init", state: Game.get_initial_state(game)} |> Poison.encode!
     {:reply, {:text, res}, req, state}
   end
 
