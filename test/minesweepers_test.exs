@@ -7,6 +7,9 @@ defmodule MinesweepersTest do
   alias Minesweepers.Game.Square
   doctest Minesweepers
 
+  @empty :unrevealed_empty
+  @bomb :unrevealed_bomb
+
   test "the truth" do
     assert 1 + 1 == 2
   end
@@ -14,18 +17,18 @@ defmodule MinesweepersTest do
   test "game board creation" do
     %Board{cols: cols, rows: rows, squares: squares} = Board.new(2,2,0.0)
     assert squares == %{
-      {0,0} => square(neighbors: 0, type: :empty, row: 0, col: 0),
-      {0,1} => square(neighbors: 0, type: :empty, row: 0, col: 1),
-      {1,0} => square(neighbors: 0, type: :empty, row: 1, col: 0),
-      {1,1} => square(neighbors: 0, type: :empty, row: 1, col: 1)
+      {0,0} => square(neighbors: 0, state: @empty, row: 0, col: 0),
+      {0,1} => square(neighbors: 0, state: @empty, row: 0, col: 1),
+      {1,0} => square(neighbors: 0, state: @empty, row: 1, col: 0),
+      {1,1} => square(neighbors: 0, state: @empty, row: 1, col: 1)
     }
 
     %Board{cols: cols, rows: rows, squares: squares} = Board.new(2,2,1.0)
     assert squares == %{
-      {0,0} => square(neighbors: 3, type: :bomb, row: 0, col: 0),
-      {0,1} => square(neighbors: 3, type: :bomb, row: 0, col: 1),
-      {1,0} => square(neighbors: 3, type: :bomb, row: 1, col: 0),
-      {1,1} => square(neighbors: 3, type: :bomb, row: 1, col: 1)
+      {0,0} => square(neighbors: 3, state: @bomb, row: 0, col: 0),
+      {0,1} => square(neighbors: 3, state: @bomb, row: 0, col: 1),
+      {1,0} => square(neighbors: 3, state: @bomb, row: 1, col: 0),
+      {1,1} => square(neighbors: 3, state: @bomb, row: 1, col: 1)
     }
   end
 
@@ -61,7 +64,7 @@ defmodule MinesweepersTest do
     state = Game.get_state(game.id)
 
     is_revealed_and_empty = fn
-      square(revealed: true, type: :empty) -> true
+      square(state: :empty) -> true
       _ -> false
     end
 
@@ -79,13 +82,13 @@ defmodule MinesweepersTest do
 
     #FIXME: is this order specified?
     first = Board.list_squares(board) |> Enum.fetch!(0)
-    assert first == square(row: 0, col: 0, flagged: true, neighbors: 1, revealed: true, type: :bomb)
+    assert first == square(row: 0, col: 0, neighbors: 1, state: :flagged)
 
     pos = {0, 1}
     {type, board} = Board.hit_square(board, pos)
     assert type == :bomb
     first = Board.list_squares(board) |> Enum.fetch!(1)
-    assert first == square(row: 0, col: 1, flagged: false, neighbors: 1, revealed: true, type: :bomb)
+    assert first == square(row: 0, col: 1, neighbors: 1, state: :bomb)
 
   end
 
@@ -99,7 +102,8 @@ defmodule MinesweepersTest do
     do: {x, y}
 
     is_bomb = fn
-      square(type: :bomb) -> true
+      square(state: :bomb) -> true
+      square(state: :unrevealed_bomb) -> true
       _ -> false
     end
 

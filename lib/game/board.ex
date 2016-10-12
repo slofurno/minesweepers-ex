@@ -37,20 +37,20 @@ defmodule Minesweepers.Game.Board do
 
   defp unpack_square(n, {row, col}) do
     neighbors = n &&& 7
-    type = if (n &&& @bomb_mask) == @bomb_mask, do: :bomb, else: :empty
+    state = if (n &&& @bomb_mask) == @bomb_mask, do: :unrevealed_bomb, else: :unrevealed_empty
 
-    square(type: type, neighbors: neighbors, row: row, col: col)
+    square(state: state, neighbors: neighbors, row: row, col: col)
   end
 
   def hit_square(%Board{squares: squares} = board, {row, col} = pos) do
     case get_square(board, pos) do
-      square(type: :bomb) ->
-        squares1 = reveal_square(squares, pos)
+      square(state: :unrevealed_bomb) ->
+        squares1 = reveal_bomb(squares, pos)
         {:bomb, %Board{board| squares: squares1}}
 
-      square(type: :empty, revealed: false, flagged: false) ->
+      square(state: :unrevealed_empty) ->
         flipped = flip_empty(board, pos)
-        squares1 = reveal_squares(squares, flipped)
+        squares1 = reveal_empty(squares, flipped)
         {:empty, %Board{board| squares: squares1}, flipped}
 
       _ ->
@@ -60,11 +60,11 @@ defmodule Minesweepers.Game.Board do
 
   def mark_square(%Board{squares: squares} = board, pos) do
     case get_square(board, pos) do
-      square(type: :bomb, revealed: false) ->
+      square(state: :unrevealed_bomb) ->
         squares1 = flag_square(squares, pos)
         {:bomb, %Board{board| squares: squares1}}
 
-      square(type: :empty, revealed: false) ->
+      square(state: :unrevealed_empty) ->
         {:empty}
 
       _ ->
@@ -107,23 +107,18 @@ defmodule Minesweepers.Game.Board do
     end
   end
 
-  defp reveal_squares(squares, revealed) do
+  defp reveal_empty(squares, revealed) do
     Enum.reduce(revealed, squares, fn c,a ->
-      Map.put(a, c, square(a[c], revealed: true))
+      Map.put(a, c, square(a[c], state: :empty))
     end)
   end
 
-  defp reveal_square(squares, pos) do
-    Map.put(squares, pos, square(squares[pos], revealed: true))
+  defp reveal_bomb(squares, pos) do
+    Map.put(squares, pos, square(squares[pos], state: :bomb))
   end
 
   defp flag_square(squares, pos) do
-    Map.put(squares, pos, square(squares[pos], revealed: true, flagged: true))
-  end
-
-  defp is_bomb(board, {_row, _col} = pos) do
-    square(type: type) = get_square(board, pos)
-    type == :bomb
+    Map.put(squares, pos, square(squares[pos], state: :flagged))
   end
 
   defp has_no_neighbors(board, pos) do

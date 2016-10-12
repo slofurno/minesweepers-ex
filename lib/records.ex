@@ -2,16 +2,14 @@ defmodule Minesweepers.Records do
   import Record, only: [defrecord: 2]
   use Bitwise
 
-  defrecord :square, [ type: :empty, neighbors: 0, row: 0, col: 0, revealed: false, flagged: false ]
+  defrecord :square, [ neighbors: 0, row: 0, col: 0, state: :unrevealed_empty]
 
-  def to_struct(square(type: type, neighbors: neighbors, row: row, col: col, revealed: revealed, flagged: flagged) = s) do
+  def to_struct(square(neighbors: n, row: row, col: col, state: state) = s) do
     %{
-      type: type,
-      neighbors: neighbors,
+      neighbors: n,
       row: row,
       col: col,
-      revealed: revealed,
-      flagged: flagged
+      state: state
     }
   end
 

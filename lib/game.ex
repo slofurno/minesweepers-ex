@@ -74,7 +74,14 @@ defmodule Minesweepers.Game do
     whereis(game) |> GenServer.call(:state)
   end
 
-  defp is_revealed(square(revealed: revealed)), do: revealed
+  #defp is_revealed(square(revealed: revealed)), do: revealed
+  defp is_revealed(square(state: state)) do
+    case state do
+      :unrevealed_empty -> false
+      :unrevealed_bomb -> false
+      _ -> true
+    end
+  end
 
   def visible_state(game) do
     %Game{board: board, players: players} = get_state(game)

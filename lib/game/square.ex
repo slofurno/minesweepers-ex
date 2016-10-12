@@ -1,7 +1,7 @@
 defmodule Minesweepers.Game.Squarex do
   alias Minesweepers.Game.Squarex
   import Minesweepers.Records
-  @types [:empty, :bomb]
+  @types [:unrevealed_empty, :unrevealed_bomb]
 
   defstruct [
     type: :empty,
@@ -14,7 +14,7 @@ defmodule Minesweepers.Game.Squarex do
 
 
   def new(type, row, col) when type in @types do
-    square(type: type, neighbors: 0, row: row, col: col)
+    square(state: type, neighbors: 0, row: row, col: col)
     #%Square{type: type, row: row, col: col}
   end
 
