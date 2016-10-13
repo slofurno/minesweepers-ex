@@ -1,6 +1,5 @@
 defmodule Minesweepers.Socket do
   alias Minesweepers.Game
-  alias Minesweepers.Utils
   alias Minesweepers.User
   alias Minesweepers.ClickEvent
 
@@ -39,12 +38,6 @@ defmodule Minesweepers.Socket do
         IO.inspect(rr)
         {:shutdown, req}
     end
-  end
-
-  defp start_game do
-    id = Utils.uuid
-    Game.start_link(id)
-    %{type: "game_started", id: id}
   end
 
   def websocket_handle({:text, message}, req, %{account: account, game: game} = state) do

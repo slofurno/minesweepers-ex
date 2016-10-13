@@ -15,8 +15,8 @@ defmodule Minesweepers.Router do
   end
 
   post "/api/games" do
-    g = Game.new()
-    send_resp(conn, 200, g.id)
+    id = Game.Supervisor.start_game
+    send_resp(conn, 200, id)
   end
 
   match _ do

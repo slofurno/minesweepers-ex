@@ -8,7 +8,6 @@ defmodule Minesweepers.Game do
   alias Minesweepers.RevealEvent
   alias Minesweepers.BombEvent
   alias Minesweepers.PlayerEvent
-  alias Minesweepers.Utils
   import Minesweepers.Records
 
   defstruct [
@@ -18,15 +17,9 @@ defmodule Minesweepers.Game do
     events: []
   ]
 
-  def new(rows, cols, chance) do
+  def new(id, rows, cols, chance) do
     board = Board.new(rows, cols, chance)
-    game = %Game{board: board, id: Utils.uuid}
-    Minesweepers.Game.Supervisor.start_game(game)
-    game
-  end
-
-  def new do
-    new(100, 100, 0.10)
+    %Game{board: board, id: id}
   end
 
   @profile_sz 400
@@ -44,19 +37,12 @@ defmodule Minesweepers.Game do
     end)
   end
 
-  def start_link(%Game{id: id} = game) do
-    GenServer.start_link(__MODULE__, game, name: via_tuple(id))
+  def start_link(id, rows, cols, chance) do
+    GenServer.start_link(__MODULE__, [id, rows, cols, chance], name: via_tuple(id))
   end
 
-  def loop do
-    loop(Minesweepers.Game.Board.new(2000,2000,0.15))
-  end
-
-  def loop(m) do
-    receive do
-      {sender} -> send(sender, {:ok, m})
-    end
-    loop(m)
+  def init([id, rows, cols, chance]) do
+    {:ok, new(id, rows, cols, chance)}
   end
 
   def list_games do

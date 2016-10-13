@@ -2,8 +2,6 @@ defmodule Minesweepers.Game.Board do
   import Minesweepers.Records
   alias Minesweepers.Game.Board
   alias Minesweepers.Rand
-  alias Minesweepers.Stack
-  alias Minesweepers.Utils
   use Bitwise
 
   defstruct [

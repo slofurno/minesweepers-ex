@@ -1,7 +1,6 @@
 defmodule Minesweepers.User do
   alias Ecto.Adapters.SQL
   alias Minesweepers.Repo
-  alias Minesweepers.Utils
 
   def create(email, pass) do
     id = Utils.uuid

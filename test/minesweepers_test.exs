@@ -9,6 +9,7 @@ defmodule MinesweepersTest do
 
   @empty :unrevealed_empty
   @bomb :unrevealed_bomb
+  @test_uuid "asdf-1234-qwer-5634"
 
   test "the truth" do
     assert 1 + 1 == 2
@@ -40,8 +41,8 @@ defmodule MinesweepersTest do
   end
 
   test "hitting a mine" do
-    game = Game.new(10, 10, 1.0)
-    click = %Minesweepers.ClickEvent{game: game.id, pos: {4,4}}
+    game = Game.start_link(@test_uuid, 10, 10, 1.0)
+    click = %Minesweepers.ClickEvent{game: @test_uuid, pos: {4,4}}
     assert Game.player_click(click) == :explode
   end
 
@@ -58,10 +59,10 @@ defmodule MinesweepersTest do
     rows = 10
     cols = 10
 
-    game = Game.new(rows, cols, 0.0)
-    click = %Minesweepers.ClickEvent{game: game.id, pos: {4,4}}
+    game = Game.start_link(@test_uuid, rows, cols, 0.0)
+    click = %Minesweepers.ClickEvent{game: @test_uuid, pos: {4,4}}
     Game.player_click(click)
-    state = Game.get_state(game.id)
+    state = Game.get_state(@test_uuid)
 
     is_revealed_and_empty = fn
       square(state: :empty) -> true

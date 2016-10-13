@@ -1,4 +1,4 @@
-defmodule Minesweepers.Utils do
+defmodule Utils do
   @hex "0123456789abcedf"
 
   def uuid do

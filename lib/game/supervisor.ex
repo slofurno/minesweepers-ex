@@ -6,8 +6,14 @@ defmodule Minesweepers.Game.Supervisor do
     Supervisor.start_link(__MODULE__, [], name: Minesweepers.Game.Supervisor)
   end
 
-  def start_game(%Game{} = game) do
-    Supervisor.start_child(Minesweepers.Game.Supervisor, [game])
+  def start_game(rows, cols, chance) do
+    id = Utils.uuid
+    Supervisor.start_child(Minesweepers.Game.Supervisor, [id, rows, cols, chance])
+    id
+  end
+
+  def start_game do
+    start_game(1000,1000,0.17)
   end
 
   def init(_) do
