@@ -3,7 +3,8 @@ defmodule Minesweepers.ClickEvent do
     player: :nil,
     game: :nil,
     pos: :nil,
-    right: false
+    right: false,
+    from: :nil
   ]
 end
 

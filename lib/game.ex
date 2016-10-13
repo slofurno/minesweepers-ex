@@ -15,7 +15,8 @@ defmodule Minesweepers.Game do
     board: :nil,
     players: [],
     events: [],
-    history: []
+    history: [],
+    scores: %{}
   ]
 
   def new(id, rows, cols, chance) do
@@ -54,7 +55,7 @@ defmodule Minesweepers.Game do
   end
 
   def player_click(%ClickEvent{game: game} = event) do
-    whereis(game) |> GenServer.call(event)
+    whereis(game) |> GenServer.cast(event)
   end
 
   def get_state(game) do
@@ -73,38 +74,40 @@ defmodule Minesweepers.Game do
     end
   end
 
-  def handle_call(%ClickEvent{player: player, pos: pos, right: true}, _from, %Game{board: board} = game) do
+  def handle_cast(%ClickEvent{player: player, pos: pos, right: true, from: from}, %Game{board: board} = game) do
     case Board.mark_square(board, pos) do
       {:bomb, board} ->
         changed = board.squares[pos]
         broadcast(game, %RevealEvent{squares: [ to_struct(changed) ]})
-        {:reply, :ok, %Game{game| board: board, history: [changed| game.history] }}
+        send(from, {:score, 10, pos})
+        {:noreply, %Game{game| board: board, history: [changed| game.history] }}
 
       {:empty} ->
-        {:reply, :explode, game}
+        send(from, {:score, -200, pos})
+        {:noreply, game}
 
       {:ok} ->
-        {:reply, :notok, game}
+        {:noreply, game}
     end
   end
 
-  def handle_call(%ClickEvent{player: player, pos: pos}, _from, %Game{board: board} = game) do
+  def handle_cast(%ClickEvent{player: player, pos: pos, from: from}, %Game{board: board} = game) do
     case Board.hit_square(board, pos) do
       {:empty, board, flipped} ->
-        changed = flipped
-          |> Enum.map(fn x -> board.squares[x] end)
-
+        changed = flipped |> Enum.map(fn x -> board.squares[x] end)
         serializable_changes = changed|> Enum.map(&to_struct/1)
         broadcast(game, %RevealEvent{squares: serializable_changes})
-        {:reply, :ok, %Game{game| board: board, history: changed ++ game.history}}
+        send(from, {:score, Enum.count(changed), pos})
+        {:noreply, %Game{game| board: board, history: changed ++ game.history}}
 
       {:bomb, board} ->
         changed = board.squares[pos]
         broadcast(game, %RevealEvent{squares: [ to_struct(changed) ]})
-        {:reply, :explode, %Game{game| board: board, history: [changed| game.history]}}
+        send(from, {:score, -200, pos})
+        {:noreply, %Game{game| board: board, history: [changed| game.history]}}
 
       {:ok} ->
-        {:reply, :notok, game}
+        {:noreply, game}
     end
   end
 
@@ -128,14 +131,10 @@ defmodule Minesweepers.Game do
 
   defp broadcast(%Game{id: id}, e) do
     :gproc.send({:p, :l, {:game, id}}, {:game_event, e})
-    #GenServer.cast(self, e)
   end
 
   def subscribe(game) do
     :gproc.reg({:p, :l, {:game, game}})
-  end
-
-  def handle_cast(%RevealEvent{} = event, %Game{players: players} = state) do
   end
 
   def whereis(game) do

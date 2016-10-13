@@ -30,7 +30,6 @@ defmodule Minesweepers.Socket do
     end
     |> case do
       {:ok, account, gameid} ->
-        #Player.new(account.id)
         send self, {:init, gameid}
         {:ok, req, %{account: account.id, game: gameid}, 480000}
 
@@ -43,12 +42,13 @@ defmodule Minesweepers.Socket do
   def websocket_handle({:text, message}, req, %{account: account, game: game} = state) do
     case Poison.decode!(message, as: %{}) do
       %{"type" => "click", "pos" => [row,col], "right" => right} ->
-        event = %ClickEvent{player: account, game: game, pos: {row, col}, right: right}
-        res =  Game.player_click(event) |> Poison.encode!
-        {:reply, {:text, res}, req, state}
+        event = %ClickEvent{player: account, game: game, pos: {row, col}, right: right, from: self}
+        Game.player_click(event)
 
-      _ -> {:ok, req, state}
+      _ -> false
     end
+
+    {:ok, req, state}
   end
 
   def websocket_info({:init, game}, req, state) do
@@ -59,6 +59,11 @@ defmodule Minesweepers.Socket do
 
   def websocket_info({:game_event, e}, req, state) do
     res = %{type: "update", update: e} |>  Poison.encode!
+    {:reply, {:text, res}, req, state}
+  end
+
+  def websocket_info({:score, points, {row, col}}, req, state) do
+    res = %{type: "score", points: points, pos: [row, col]} |>  Poison.encode!
     {:reply, {:text, res}, req, state}
   end
 
