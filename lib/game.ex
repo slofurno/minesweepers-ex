@@ -14,7 +14,8 @@ defmodule Minesweepers.Game do
     id: "",
     board: :nil,
     players: [],
-    events: []
+    events: [],
+    history: []
   ]
 
   def new(id, rows, cols, chance) do
@@ -75,8 +76,9 @@ defmodule Minesweepers.Game do
   def handle_call(%ClickEvent{player: player, pos: pos, right: true}, _from, %Game{board: board} = game) do
     case Board.mark_square(board, pos) do
       {:bomb, board} ->
-        broadcast(game, %RevealEvent{squares: [ to_struct(board.squares[pos]) ]})
-        {:reply, :ok, %Game{game| board: board}}
+        changed = board.squares[pos]
+        broadcast(game, %RevealEvent{squares: [ to_struct(changed) ]})
+        {:reply, :ok, %Game{game| board: board, history: [changed| game.history] }}
 
       {:empty} ->
         {:reply, :explode, game}
@@ -89,15 +91,17 @@ defmodule Minesweepers.Game do
   def handle_call(%ClickEvent{player: player, pos: pos}, _from, %Game{board: board} = game) do
     case Board.hit_square(board, pos) do
       {:empty, board, flipped} ->
-        updated = flipped
+        changed = flipped
           |> Enum.map(fn x -> board.squares[x] end)
-          |> Enum.map(&to_struct/1)
-        broadcast(game, %RevealEvent{squares: updated})
-        {:reply, :ok, %Game{game| board: board}}
+
+        serializable_changes = changed|> Enum.map(&to_struct/1)
+        broadcast(game, %RevealEvent{squares: serializable_changes})
+        {:reply, :ok, %Game{game| board: board, history: changed ++ game.history}}
 
       {:bomb, board} ->
-        broadcast(game, %RevealEvent{squares: [ to_struct(board.squares[pos]) ]})
-        {:reply, :explode, %Game{game| board: board}}
+        changed = board.squares[pos]
+        broadcast(game, %RevealEvent{squares: [ to_struct(changed) ]})
+        {:reply, :explode, %Game{game| board: board, history: [changed| game.history]}}
 
       {:ok} ->
         {:reply, :notok, game}
@@ -113,17 +117,9 @@ defmodule Minesweepers.Game do
     end
   end
 
-  def handle_call(:initial_state, _from, %Game{ board: %Board{squares: squares, rows: rows, cols: cols} } = state) do
-    xs = for row <- 0..rows-1,
-    col <- 0..cols-1,
-    do: {row, col}
-
-    ys = List.foldl(xs, [], fn(x, ys) ->
-      if is_revealed?(squares[x]), do: [squares[x]| ys], else: ys
-    end)
-    |> Enum.map(&to_struct/1)
-
-    {:reply, %{rows: rows, cols: cols, squares: ys}, state}
+  def handle_call(:initial_state, _from, %Game{ board: %Board{ rows: rows, cols: cols}, history: history } = state) do
+    xs = history |> Enum.map(&to_struct/1)
+    {:reply, %{rows: rows, cols: cols, squares: xs}, state}
   end
 
   def handle_call(:state, _from, state) do
