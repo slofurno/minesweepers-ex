@@ -18,18 +18,18 @@ defmodule MinesweepersTest do
   test "game board creation" do
     %Board{cols: cols, rows: rows, squares: squares} = Board.new(2,2,0.0)
     assert squares == %{
-      {0,0} => square(neighbors: 0, state: @empty, row: 0, col: 0),
-      {0,1} => square(neighbors: 0, state: @empty, row: 0, col: 1),
-      {1,0} => square(neighbors: 0, state: @empty, row: 1, col: 0),
-      {1,1} => square(neighbors: 0, state: @empty, row: 1, col: 1)
+      {0,0} => square(neighbors: 0, state: @empty),
+      {0,1} => square(neighbors: 0, state: @empty),
+      {1,0} => square(neighbors: 0, state: @empty),
+      {1,1} => square(neighbors: 0, state: @empty)
     }
 
     %Board{cols: cols, rows: rows, squares: squares} = Board.new(2,2,1.0)
     assert squares == %{
-      {0,0} => square(neighbors: 3, state: @bomb, row: 0, col: 0),
-      {0,1} => square(neighbors: 3, state: @bomb, row: 0, col: 1),
-      {1,0} => square(neighbors: 3, state: @bomb, row: 1, col: 0),
-      {1,1} => square(neighbors: 3, state: @bomb, row: 1, col: 1)
+      {0,0} => square(neighbors: 3, state: @bomb),
+      {0,1} => square(neighbors: 3, state: @bomb),
+      {1,0} => square(neighbors: 3, state: @bomb),
+      {1,1} => square(neighbors: 3, state: @bomb)
     }
   end
 
@@ -40,11 +40,12 @@ defmodule MinesweepersTest do
     IO.inspect(flipped)
   end
 
-  test "hitting a mine" do
-    game = Game.start_link(@test_uuid, 10, 10, 1.0)
-    click = %Minesweepers.ClickEvent{game: @test_uuid, pos: {4,4}}
-    assert Game.player_click(click) == :explode
-  end
+#
+#  test "hitting a mine" do
+#    game = Game.start_link(@test_uuid, 10, 10, 1.0)
+#    click = %Minesweepers.ClickEvent{game: @test_uuid, pos: {4,4}}
+#    assert Game.player_click(click) == :explode
+#  end
 
   test "has neighbors" do
     board = Board.new(5, 5, 1.0)
@@ -78,18 +79,18 @@ defmodule MinesweepersTest do
 
   test "interacting with mines" do
     board = Board.new(1, 2, 1.0)
-    {type, board} = Board.mark_square(board, {0, 0})
+    {type, board, _} = Board.mark_square(board, {0, 0})
     assert type == :bomb
 
     #FIXME: is this order specified?
     first = Board.list_squares(board) |> Enum.fetch!(0)
-    assert first == square(row: 0, col: 0, neighbors: 1, state: :flagged)
+    assert first == square(neighbors: 1, state: :flagged)
 
     pos = {0, 1}
-    {type, board} = Board.hit_square(board, pos)
+    {type, board, _} = Board.hit_square(board, pos)
     assert type == :bomb
     first = Board.list_squares(board) |> Enum.fetch!(1)
-    assert first == square(row: 0, col: 1, neighbors: 1, state: :bomb)
+    assert first == square(neighbors: 1, state: :bomb)
 
   end
 

@@ -30,26 +30,28 @@ defmodule Minesweepers.Game.Board do
   defp map_zip([], _, p), do: p
 
   defp map_zip([x|xs], <<n :: 8, rest :: binary>>, p) do
-    map_zip(xs, rest, Map.put(p, x, unpack_square(n,x)))
+    map_zip(xs, rest, Map.put(p, x, unpack_square(n)))
   end
 
-  defp unpack_square(n, {row, col}) do
+  defp unpack_square(n) do
     neighbors = n &&& 7
     state = if (n &&& @bomb_mask) == @bomb_mask, do: :unrevealed_bomb, else: :unrevealed_empty
 
-    square(state: state, neighbors: neighbors, row: row, col: col)
+    square(state: state, neighbors: neighbors)
   end
 
   def hit_square(%Board{squares: squares} = board, {row, col} = pos) do
     case get_square(board, pos) do
       square(state: :unrevealed_bomb) ->
-        squares1 = reveal_bomb(squares, pos)
-        {:bomb, %Board{board| squares: squares1}}
+        squares = reveal_bomb(squares, pos)
+        changed = squares[pos] |> to_struct(pos)
+        {:bomb, %Board{board| squares: squares}, [ changed ]}
 
       square(state: :unrevealed_empty) ->
         flipped = flip_empty(board, pos)
-        squares1 = reveal_empty(squares, flipped)
-        {:empty, %Board{board| squares: squares1}, flipped}
+        squares = reveal_empty(squares, flipped)
+        changed = flipped |> Enum.map(fn x -> squares[x] |> to_struct(x) end)
+        {:empty, %Board{board| squares: squares}, changed}
 
       _ ->
         {:ok}
@@ -59,8 +61,9 @@ defmodule Minesweepers.Game.Board do
   def mark_square(%Board{squares: squares} = board, pos) do
     case get_square(board, pos) do
       square(state: :unrevealed_bomb) ->
-        squares1 = flag_square(squares, pos)
-        {:bomb, %Board{board| squares: squares1}}
+        squares = flag_square(squares, pos)
+        changed = squares[pos] |> to_struct(pos)
+        {:bomb, %Board{board| squares: squares}, [ changed ]}
 
       square(state: :unrevealed_empty) ->
         {:empty}

@@ -76,14 +76,13 @@ defmodule Minesweepers.Game do
 
   def handle_cast(%ClickEvent{player: player, pos: pos, right: true, from: from}, %Game{board: board} = game) do
     case Board.mark_square(board, pos) do
-      {:bomb, board} ->
-        changed = board.squares[pos]
-        broadcast(game, %RevealEvent{squares: [ to_struct(changed) ]})
-        send(from, {:score, 10, pos})
-        {:noreply, %Game{game| board: board, history: [changed| game.history] }}
+      {:bomb, board, changed} ->
+        broadcast(game, %RevealEvent{squares: changed})
+        #send(from, {:score, 10, pos})
+        {:noreply, %Game{game| board: board, history: changed ++ game.history }}
 
       {:empty} ->
-        send(from, {:score, -200, pos})
+        #send(from, {:score, -200, pos})
         {:noreply, game}
 
       {:ok} ->
@@ -93,18 +92,15 @@ defmodule Minesweepers.Game do
 
   def handle_cast(%ClickEvent{player: player, pos: pos, from: from}, %Game{board: board} = game) do
     case Board.hit_square(board, pos) do
-      {:empty, board, flipped} ->
-        changed = flipped |> Enum.map(fn x -> board.squares[x] end)
-        serializable_changes = changed|> Enum.map(&to_struct/1)
-        broadcast(game, %RevealEvent{squares: serializable_changes})
-        send(from, {:score, Enum.count(changed), pos})
+      {:empty, board, changed} ->
+        broadcast(game, %RevealEvent{squares: changed})
+        #send(from, {:score, Enum.count(changed), pos})
         {:noreply, %Game{game| board: board, history: changed ++ game.history}}
 
-      {:bomb, board} ->
-        changed = board.squares[pos]
-        broadcast(game, %RevealEvent{squares: [ to_struct(changed) ]})
-        send(from, {:score, -200, pos})
-        {:noreply, %Game{game| board: board, history: [changed| game.history]}}
+      {:bomb, board, changed} ->
+        broadcast(game, %RevealEvent{squares: changed})
+        #send(from, {:score, -200, pos})
+        {:noreply, %Game{game| board: board, history: changed ++ game.history}}
 
       {:ok} ->
         {:noreply, game}
@@ -121,8 +117,7 @@ defmodule Minesweepers.Game do
   end
 
   def handle_call(:initial_state, _from, %Game{ board: %Board{ rows: rows, cols: cols}, history: history } = state) do
-    xs = history |> Enum.map(&to_struct/1)
-    {:reply, %{rows: rows, cols: cols, squares: xs}, state}
+    {:reply, %{rows: rows, cols: cols, squares: history}, state}
   end
 
   def handle_call(:state, _from, state) do

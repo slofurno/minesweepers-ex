@@ -14,7 +14,7 @@ defmodule Minesweepers.Game.Squarex do
 
 
   def new(type, row, col) when type in @types do
-    square(state: type, neighbors: 0, row: row, col: col)
+    square(state: type, neighbors: 0)
     #%Square{type: type, row: row, col: col}
   end
 
