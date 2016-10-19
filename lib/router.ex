@@ -14,9 +14,15 @@ defmodule Minesweepers.Router do
     |> send_resp(200, Poison.encode!(games))
   end
 
+  get "/api/games/:id" do
+    IO.inspect(id)
+
+    send_resp(conn, 200, "ok")
+  end
+
   post "/api/games" do
-    id = Game.Supervisor.start_game
-    send_resp(conn, 200, id)
+    #id = Game.Supervisor.start_game
+    send_resp(conn, 200, "ok")
   end
 
   match _ do

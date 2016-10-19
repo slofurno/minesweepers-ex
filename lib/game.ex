@@ -14,29 +14,15 @@ defmodule Minesweepers.Game do
     id: "",
     board: :nil,
     players: [],
-    events: [],
     history: [],
-    scores: %{}
+    scores: %{},
+    start: 0
   ]
 
   def new(id, rows, cols, chance) do
     board = Board.new(rows, cols, chance)
-    %Game{board: board, id: id}
-  end
-
-  @profile_sz 400
-  @profile_chance 0.10
-
-  def profile_board do
-    Board.new(@profile_sz, @profile_sz, @profile_chance)
-    Board.new(@profile_sz, @profile_sz, @profile_chance)
-    Board.new(@profile_sz, @profile_sz, @profile_chance)
-    Enum.map(0..49, fn _ ->
-      t0 = :os.system_time(:milli_seconds)
-      Board.new(@profile_sz, @profile_sz, @profile_chance)
-      t1 = :os.system_time(:milli_seconds)
-      t1 - t0
-    end)
+    start = Utils.epoch_time
+    %Game{board: board, id: id, start: start}
   end
 
   def start_link(id, rows, cols, chance) do
@@ -66,6 +52,10 @@ defmodule Minesweepers.Game do
     whereis(game) |> GenServer.call(:initial_state)
   end
 
+  def get_info(game) do
+    whereis(game) |> GenServer.call(:info)
+  end
+
   defp is_revealed?(square(state: state)) do
     case state do
       :unrevealed_empty -> false
@@ -74,38 +64,53 @@ defmodule Minesweepers.Game do
     end
   end
 
-  def handle_cast(%ClickEvent{player: player, pos: pos, right: true, from: from}, %Game{board: board} = game) do
+  def handle_cast(%ClickEvent{player: player, pos: pos, right: true, from: from}, %Game{board: board, scores: scores} = game) do
     case Board.mark_square(board, pos) do
       {:bomb, board, changed} ->
-        broadcast(game, %RevealEvent{squares: changed})
+        ds = 10
+        broadcast(game, %RevealEvent{squares: changed, player: player, score: ds})
         #send(from, {:score, 10, pos})
-        {:noreply, %Game{game| board: board, history: changed ++ game.history }}
+        scores = change_score(scores, player, ds)
+        {:noreply, %Game{game| board: board, history: changed ++ game.history, scores: scores }}
 
       {:empty} ->
+        ds = -200
+        scores = change_score(scores, player, ds)
+        broadcast(game, %RevealEvent{player: player, score: ds })
         #send(from, {:score, -200, pos})
-        {:noreply, game}
+        {:noreply, %Game{game| scores: scores}}
 
       {:ok} ->
         {:noreply, game}
     end
   end
 
-  def handle_cast(%ClickEvent{player: player, pos: pos, from: from}, %Game{board: board} = game) do
+  def handle_cast(%ClickEvent{player: player, pos: pos, from: from}, %Game{board: board, scores: scores} = game) do
     case Board.hit_square(board, pos) do
       {:empty, board, changed} ->
-        broadcast(game, %RevealEvent{squares: changed})
+        ds = Enum.count(changed)
+        broadcast(game, %RevealEvent{squares: changed, player: player, score: ds })
+        scores = change_score(scores, player, ds)
         #send(from, {:score, Enum.count(changed), pos})
-        {:noreply, %Game{game| board: board, history: changed ++ game.history}}
+        {:noreply, %Game{game| board: board, history: changed ++ game.history, scores: scores}}
 
       {:bomb, board, changed} ->
-        broadcast(game, %RevealEvent{squares: changed})
+        ds = -200
+        broadcast(game, %RevealEvent{squares: changed, player: player, score: ds})
+        scores = change_score(scores, player, ds)
         #send(from, {:score, -200, pos})
-        {:noreply, %Game{game| board: board, history: changed ++ game.history}}
+        {:noreply, %Game{game| board: board, history: changed ++ game.history, scores: scores}}
 
       {:ok} ->
         {:noreply, game}
     end
   end
+
+  def handle_call({:info}, _from, %Game{start: start, scores: scores } = game) do
+
+    {:reply, game_info_response(start: start, scores: scores ), game}
+  end
+
 
   def handle_call({:join, player}, _from, %Game{players: players} = game) do
     if player in players do
@@ -116,8 +121,8 @@ defmodule Minesweepers.Game do
     end
   end
 
-  def handle_call(:initial_state, _from, %Game{ board: %Board{ rows: rows, cols: cols}, history: history } = state) do
-    {:reply, %{rows: rows, cols: cols, squares: history}, state}
+  def handle_call(:initial_state, _from, %Game{ board: %Board{ rows: rows, cols: cols}, history: history, scores: scores } = state) do
+    {:reply, %{rows: rows, cols: cols, squares: history, scores: scores}, state}
   end
 
   def handle_call(:state, _from, state) do
@@ -138,6 +143,14 @@ defmodule Minesweepers.Game do
 
   def via_tuple(game) do
     {:via, :gproc, {:n, :l, {:game, game}}}
+  end
+
+  defp change_score(scores, player, ds) do
+    {_, scores} = Map.get_and_update(scores, player, fn
+      nil -> {nil, ds}
+      x -> {x, x + ds}
+    end)
+    scores
   end
 end
 

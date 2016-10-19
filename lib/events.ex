@@ -12,7 +12,8 @@ defmodule Minesweepers.RevealEvent do
   defstruct [
     type: "reveal",
     player: :nil,
-    squares: []
+    squares: [],
+    score: 0
   ]
 end
 

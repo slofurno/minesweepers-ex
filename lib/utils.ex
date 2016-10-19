@@ -34,3 +34,23 @@ defmodule Utils do
     end
   end
 end
+
+defmodule Minesweepers.Profile do
+  alias Minesweepers.Game.Board
+
+  @profile_sz 400
+  @profile_chance 0.10
+
+  def profile_board do
+    Board.new(@profile_sz, @profile_sz, @profile_chance)
+    Board.new(@profile_sz, @profile_sz, @profile_chance)
+    Board.new(@profile_sz, @profile_sz, @profile_chance)
+    Enum.map(0..49, fn _ ->
+      t0 = :os.system_time(:milli_seconds)
+      Board.new(@profile_sz, @profile_sz, @profile_chance)
+      t1 = :os.system_time(:milli_seconds)
+      t1 - t0
+    end)
+  end
+
+end
