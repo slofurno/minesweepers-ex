@@ -10,7 +10,7 @@ defmodule Minesweepers.User do
     %{id: id, email: email}
   end
 
-  defp create_login(account) do
+  def create_login(account) do
     token = Utils.uuid
     sql = "insert into logins (id, account) values ($1, $2)"
     SQL.query(Repo, sql, [token, account])

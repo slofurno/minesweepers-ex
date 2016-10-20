@@ -88,7 +88,7 @@ defmodule Minesweepers.Game.Board do
 
 	defp valid_neighbors([], _rows, _cols, yys), do: yys
 
-  def neighbors(%Board{squares: squares, rows: rows, cols: cols} = board, {row, col} = pos) do
+  def neighbors(%{squares: squares, rows: rows, cols: cols} = board, {row, col} = pos) do
     Enum.map(@offsets, fn {r,c} -> {r+row, c+col} end)
     |> valid_neighbors(rows, cols, [])
   end

@@ -3,6 +3,7 @@ defmodule Minesweepers.Router do
   use Plug.Builder
   alias Plug.Conn
   alias Minesweepers.Game
+  alias Minesweepers.User
 
   plug :match
   plug :dispatch
@@ -23,6 +24,13 @@ defmodule Minesweepers.Router do
   post "/api/games" do
     #id = Game.Supervisor.start_game
     send_resp(conn, 200, "ok")
+  end
+
+  post "/api/users" do
+    %{id: id} = User.create(Utils.uuid, Utils.uuid)
+    {:ok, token} = User.create_login(id)
+
+    send_resp(conn, 200, Poison.encode!(%{id: id, token: token}))
   end
 
   match _ do

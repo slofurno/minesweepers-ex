@@ -54,3 +54,4 @@ defmodule Minesweepers.Profile do
   end
 
 end
+
