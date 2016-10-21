@@ -210,6 +210,8 @@ nifload(ErlNifEnv* env, void** priv_data, ERL_NIF_TERM load_info)
                                          NULL,
                                          ERL_NIF_RT_CREATE|ERL_NIF_RT_TAKEOVER,
                                          NULL);
+
+    srand(time(NULL));
     return 0;
 }
 

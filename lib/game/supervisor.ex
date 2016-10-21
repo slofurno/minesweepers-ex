@@ -13,7 +13,7 @@ defmodule Minesweepers.Game.Supervisor do
   end
 
   def start_game do
-    start_game(2000,2000,0.17)
+    start_game(600,600,0.19)
   end
 
   def init(_) do
