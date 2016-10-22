@@ -13,7 +13,7 @@ defmodule Minesweepers.Game do
   defstruct [
     id: "",
     board: :nil,
-    players: [],
+    players: %{},
     history: [],
     scores: %{},
     start: 0
@@ -67,17 +67,17 @@ defmodule Minesweepers.Game do
   def handle_cast(%ClickEvent{player: player, pos: pos, right: true, from: from}, %Game{board: board, scores: scores} = game) do
     case Board.mark_square(board, pos) do
       {:bomb, board, changed} ->
-        ds = 10
-        broadcast(game, %RevealEvent{squares: changed, player: player, score: ds})
-        #send(from, {:score, 10, pos})
-        scores = change_score(scores, player, ds)
+        score = (scores[player] || 0) + 10
+        scores = Map.put(scores, player, score)
+
+        broadcast(game, %RevealEvent{squares: changed, player: player, score: score})
         {:noreply, %Game{game| board: board, history: changed ++ game.history, scores: scores }}
 
       {:empty} ->
-        ds = -200
-        scores = change_score(scores, player, ds)
-        broadcast(game, %RevealEvent{player: player, score: ds })
-        #send(from, {:score, -200, pos})
+        score = round (scores[player] || 0) * 0.2
+        scores = Map.put(scores, player, score)
+
+        broadcast(game, %RevealEvent{player: player, score: score })
         {:noreply, %Game{game| scores: scores}}
 
       {:ok} ->
@@ -88,17 +88,17 @@ defmodule Minesweepers.Game do
   def handle_cast(%ClickEvent{player: player, pos: pos, from: from}, %Game{board: board, scores: scores} = game) do
     case Board.hit_square(board, pos) do
       {:empty, board, changed} ->
-        ds = Enum.count(changed)
-        broadcast(game, %RevealEvent{squares: changed, player: player, score: ds })
-        scores = change_score(scores, player, ds)
-        #send(from, {:score, Enum.count(changed), pos})
+        score = (scores[player] || 0) + Enum.count(changed)
+        scores = Map.put(scores, player, score)
+
+        broadcast(game, %RevealEvent{squares: changed, player: player, score: score})
         {:noreply, %Game{game| board: board, history: changed ++ game.history, scores: scores}}
 
       {:bomb, board, changed} ->
-        ds = -200
-        broadcast(game, %RevealEvent{squares: changed, player: player, score: ds})
-        scores = change_score(scores, player, ds)
-        #send(from, {:score, -200, pos})
+        score = round (scores[player] || 0) * 0.2
+        scores = Map.put(scores, player, score)
+
+        broadcast(game, %RevealEvent{squares: changed, player: player, score: score})
         {:noreply, %Game{game| board: board, history: changed ++ game.history, scores: scores}}
 
       {:ok} ->
@@ -106,23 +106,19 @@ defmodule Minesweepers.Game do
     end
   end
 
-  def handle_call({:info}, _from, %Game{start: start, scores: scores } = game) do
+  def handle_cast({:name, player, name}, %Game{players: players} = game) do
+    players = Map.put(players, player, name)
+    broadcast(game, %PlayerEvent{player: player, name: name})
+    {:noreply, %Game{game| players: players}}
+  end
 
+  def handle_call({:info}, _from, %Game{start: start, scores: scores } = game) do
     {:reply, game_info_response(start: start, scores: scores ), game}
   end
 
-
-  def handle_call({:join, player}, _from, %Game{players: players} = game) do
-    if player in players do
-      {:reply, :already_exists, game}
-    else
-      broadcast(game, %PlayerEvent{player: player, message: "joined"})
-      {:reply, :ok, %Game{game| players: [player| players]}}
-    end
-  end
-
-  def handle_call(:initial_state, _from, %Game{ board: %Board{ rows: rows, cols: cols}, history: history, scores: scores } = state) do
-    {:reply, %{rows: rows, cols: cols, squares: history, scores: scores}, state}
+  def handle_call(:initial_state, _from, state) do
+    %Game{ board: %Board{ rows: rows, cols: cols}, history: history, scores: scores, players: players } = state
+    {:reply, %{rows: rows, cols: cols, squares: history, scores: scores, players: players}, state}
   end
 
   def handle_call(:state, _from, state) do
@@ -135,6 +131,10 @@ defmodule Minesweepers.Game do
 
   def subscribe(game) do
     :gproc.reg({:p, :l, {:game, game}})
+  end
+
+  def set_name(game, player, name) do
+    whereis(game) |> GenServer.cast({:name, player, name})
   end
 
   def whereis(game) do

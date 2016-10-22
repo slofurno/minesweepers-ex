@@ -14,6 +14,7 @@ defmodule Minesweepers.Bot do
     Game.subscribe(game)
     %{rows: rows, cols: cols, squares: squares} = Game.get_initial_state(game)
     state = %{id: game, player: Utils.uuid, squares: rebuild_game(squares), rows: rows, cols: cols, moves: {[], []}, start: @first_click}
+    Game.set_name(game, state.player, "robot player")
     schedule_next_move()
     {:ok, state}
   end

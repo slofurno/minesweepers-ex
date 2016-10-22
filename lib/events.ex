@@ -37,6 +37,10 @@ defmodule Minesweepers.PlayerEvent do
   defstruct [
     type: "player",
     player: :nil,
-    message: ""
+    name: ""
   ]
+end
+
+defmodule Minesweepers.InitEvent do
+  defstruct type: :init, player: :nil, name: :nil
 end

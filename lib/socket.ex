@@ -51,15 +51,15 @@ defmodule Minesweepers.Socket do
     {:ok, req, state}
   end
 
-  def websocket_info({:init, game}, req, state) do
+  def websocket_info({:init, game}, req, %{account: account} = state) do
     Game.subscribe(game)
+    Game.set_name(game, account, "human player")
     res = %{type: "init", state: Game.get_initial_state(game)} |> Poison.encode!
     {:reply, {:text, res}, req, state}
   end
 
   def websocket_info({:game_event, e}, req, state) do
-    res = %{type: "update", update: e} |>  Poison.encode!
-    {:reply, {:text, res}, req, state}
+    {:reply, {:text, Poison.encode! e}, req, state}
   end
 
   def websocket_info({:score, points, {row, col}}, req, state) do
