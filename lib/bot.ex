@@ -95,15 +95,12 @@ defmodule Minesweepers.Bot do
       open = Enum.filter(neighbors, fn {pos, square} -> square == nil end)
       bombs = Enum.filter(neighbors, fn
         {_, nil} -> false
-        {_, %{state: state}} ->
-          case state do
-            :bomb -> true
-            :flagged -> true
-            _ -> false
-          end
+        {_, %{s: :bomb}} -> true
+        {_, %{s: :flagged}} -> true
+        _ -> false
       end) |> Enum.count
 
-      neighbors = squares[pos].neighbors
+      neighbors = squares[pos].n
       [{pos, neighbors, bombs, open} |xs]
     end)
 
@@ -134,7 +131,7 @@ defmodule Minesweepers.Bot do
       squares[pos] == nil -> Map.put(seen, pos, false)
 
       true ->
-        has_neighbors = squares[pos].neighbors > 0
+        has_neighbors = squares[pos].n > 0
         seen = Map.put(seen, pos, has_neighbors)
 
         Board.neighbors(state, pos)

@@ -7,10 +7,10 @@ defmodule Minesweepers.Records do
 
   def to_struct(square(neighbors: n, state: state) = s, {row,col}) do
     %{
-      neighbors: n,
+      n: n,
       row: row,
       col: col,
-      state: state
+      s: state
     }
   end
 
