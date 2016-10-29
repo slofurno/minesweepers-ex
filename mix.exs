@@ -34,7 +34,7 @@ defmodule Minesweepers.Mixfile do
       {:poison, "~> 2.0"},
       {:comeonin, "~> 2.5"},
       {:uuid, "~> 1.1"},
-      {:gproc, "~> 0.5.0"},
+      {:gproc, "~> 0.6.1"},
       {:postgrex, ">= 0.0.0"},
       {:ecto, "~> 2.0.0"}
     ]

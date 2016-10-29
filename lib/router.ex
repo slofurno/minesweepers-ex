@@ -4,6 +4,7 @@ defmodule Minesweepers.Router do
   alias Plug.Conn
   alias Minesweepers.Game
   alias Minesweepers.User
+  alias Minesweepers.Bot
 
   plug :match
   plug :dispatch
@@ -22,7 +23,10 @@ defmodule Minesweepers.Router do
   end
 
   post "/api/games" do
-    #id = Game.Supervisor.start_game
+    {:ok, body, conn} = read_body(conn)
+    %{rows: rows, cols: cols, bots: bots} = Poison.decode!(body, as: %GameRequest{})
+    game = Game.Supervisor.start_game rows, cols, 0.206
+    Enum.each(1..bots, fn _ -> Bot.Supervisor.start_bot(game) end)
     send_resp(conn, 200, "ok")
   end
 
@@ -37,3 +41,4 @@ defmodule Minesweepers.Router do
     send_resp(conn, 404, "oops")
   end
 end
+

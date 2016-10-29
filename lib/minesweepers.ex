@@ -9,7 +9,8 @@ defmodule Minesweepers do
     children = [
       Plug.Adapters.Cowboy.child_spec(:http, nil, [], [dispatch: dispatch, port: 4001]),
       supervisor(Minesweepers.Repo, []),
-      supervisor(Minesweepers.Game.Supervisor, [])
+      supervisor(Minesweepers.Game.Supervisor, []),
+      supervisor(Minesweepers.Bot.Supervisor, [])
       # Define workers and child supervisors to be supervised
       # worker(Minesweepers.Worker, [arg1, arg2, arg3]),
     ]

@@ -44,3 +44,7 @@ end
 defmodule Minesweepers.InitEvent do
   defstruct type: :init, player: :nil, name: :nil
 end
+
+defmodule GameRequest do
+  defstruct [:rows, :cols, :bots]
+end

@@ -7,7 +7,7 @@ defmodule Minesweepers.Bot do
   @first_click {20,20}
 
   def start_link(game) do
-    GenServer.start_link(__MODULE__, [game])
+    GenServer.start_link(__MODULE__, [game], name: via_tuple(Utils.uuid))
   end
 
   def init([game]) do
@@ -140,51 +140,8 @@ defmodule Minesweepers.Bot do
     end
   end
 
-  def test do
-    game = Minesweepers.Game.Supervisor.start_game(200,200,0.206)
-    :timer.sleep(500)
-    {:ok, bot} = Minesweepers.Bot.start_link
-
-    %{player: player} = GenServer.call(bot, {:join, game})
-
-    :timer.sleep(500)
-    click = %Minesweepers.ClickEvent{game: game, player: player, pos: @first_click}
-    Game.player_click(click)
-    :timer.sleep(2000)
-
-    Enum.map(1..100, fn _ ->
-      {flag, click} = GenServer.call(bot, {:move})
-
-      if Enum.count(flag) + Enum.count(click) > 0 do
-        Enum.map(flag, fn pos ->
-          Game.player_click(%Minesweepers.ClickEvent{game: game, player: player, pos: pos, right: true})
-        end)
-
-        Enum.map(click, fn pos ->
-          Game.player_click(%Minesweepers.ClickEvent{game: game, player: player, pos: pos, right: false})
-        end)
-      else
-
-        x = :rand.uniform(200) - 1
-        y = :rand.uniform(200) - 1
-
-        click = %Minesweepers.ClickEvent{game: game, player: player, pos: {x,y}}
-        Game.player_click(click)
-        GenServer.call(bot, {:click, {x, y}})
-
-      end
-        :timer.sleep(500)
-
-    end)
-
-    #click = %Minesweepers.ClickEvent{game: game, player: player, pos: {30,30}}
-    #Game.player_click(click)
-    #:timer.sleep(500)
-
-
-    #GenServer.call(bot, {:click, {30,30}})
-    #GenServer.call(bot, {:move})
-    #GenServer.call(bot, {:state}) |> IO.inspect
+  def via_tuple(bot) do
+    {:via, :gproc, {:n, :l, {:bot, bot}}}
   end
 
 end
