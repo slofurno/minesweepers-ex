@@ -31,7 +31,7 @@ defmodule Minesweepers.Socket do
     |> case do
       {:ok, account, gameid} ->
         send self, {:init, gameid}
-        {:ok, req, %{account: account.id, game: gameid}, 480000}
+        {:ok, req, %{account: account.id, game: gameid}, 8000}
 
       rr ->
         IO.inspect(rr)
@@ -39,10 +39,14 @@ defmodule Minesweepers.Socket do
     end
   end
 
+  def websocket_handle({:text, "ping"}, req, state) do
+    {:reply, :pong, req, state}
+  end
+
   def websocket_handle({:text, message}, req, %{account: account, game: game} = state) do
     case Poison.decode!(message, as: %{}) do
       %{"type" => "click", "pos" => [row,col], "right" => right} ->
-        event = %ClickEvent{player: account, game: game, pos: {row, col}, right: right, from: self}
+        event = %ClickEvent{player: account, game: game, pos: {row, col}, right: right}
         Game.player_click(event)
 
       _ -> false

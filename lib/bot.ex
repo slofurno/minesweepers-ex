@@ -5,18 +5,22 @@ defmodule Minesweepers.Bot do
   alias Minesweepers.Game.Board
 
   @first_click {20,20}
+  @initial_moves {[], []}
 
   def start_link(game) do
     GenServer.start_link(__MODULE__, [game], name: via_tuple(Utils.uuid))
   end
 
   def init([game]) do
-    Game.subscribe(game)
+    player = Utils.uuid
+    ref = Game.whereis(game) |> Process.monitor
     %{rows: rows, cols: cols, squares: squares} = Game.get_initial_state(game)
-    state = %{id: game, player: Utils.uuid, squares: rebuild_game(squares), rows: rows, cols: cols, moves: {[], []}, start: @first_click}
-    Game.set_name(game, state.player, "robot player")
+    Game.subscribe(game)
+    Game.set_name(game, player, "robot player")
     schedule_next_move()
-    {:ok, state}
+
+    {:ok, %{id: game, player: Utils.uuid, squares: rebuild_game(squares), ref: ref,
+      rows: rows, cols: cols, moves: @initial_moves, start: @first_click}}
   end
 
   defp schedule_next_move do
@@ -36,6 +40,10 @@ defmodule Minesweepers.Bot do
 
   defp rebuild_game(squares) do
     List.foldl(squares, %{}, fn square, map -> Map.put(map, {square.row, square.col}, square) end)
+  end
+
+  def handle_info({:DOWN, ref1, :process, _pid, _reason}, %{ref: ref} = state) do
+    {:stop, :normal, state}
   end
 
   def handle_info(:move, %{moves: {flag, click}, id: game, player: player} = state) do

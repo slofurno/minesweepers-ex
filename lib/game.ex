@@ -16,7 +16,8 @@ defmodule Minesweepers.Game do
     players: %{},
     history: [],
     scores: %{},
-    start: 0
+    start: 0,
+    turn: 0
   ]
 
   def new(id, rows, cols, chance) do
@@ -64,17 +65,17 @@ defmodule Minesweepers.Game do
     end
   end
 
-  def handle_cast(%ClickEvent{player: player, pos: pos, right: true, from: from}, %Game{board: board, scores: scores} = game) do
+  def handle_cast(%ClickEvent{player: player, pos: pos, right: true, from: from}, %Game{board: board, scores: scores, turn: turn} = game) do
     case Board.mark_square(board, pos) do
       {:bomb, board, changed} ->
-        score = (scores[player] || 0) + 10
+        score = (scores[player] || 0) + 1
         scores = Map.put(scores, player, score)
 
         broadcast(game, %RevealEvent{squares: changed, player: player, score: score})
         {:noreply, %Game{game| board: board, history: changed ++ game.history, scores: scores }}
 
       {:empty} ->
-        score = round (scores[player] || 0) * 0.2
+        score = round (scores[player] || 0) * 0.5
         scores = Map.put(scores, player, score)
 
         broadcast(game, %RevealEvent{player: player, score: score })
@@ -85,17 +86,16 @@ defmodule Minesweepers.Game do
     end
   end
 
-  def handle_cast(%ClickEvent{player: player, pos: pos, from: from}, %Game{board: board, scores: scores} = game) do
+  def handle_cast(%ClickEvent{player: player, pos: pos, from: from}, %Game{board: board, scores: scores, turn: turn} = game) do
     case Board.hit_square(board, pos) do
       {:empty, board, changed} ->
-        score = (scores[player] || 0) + Enum.count(changed)
-        scores = Map.put(scores, player, score)
+        score = scores[player] || 0
 
         broadcast(game, %RevealEvent{squares: changed, player: player, score: score})
-        {:noreply, %Game{game| board: board, history: changed ++ game.history, scores: scores}}
+        {:noreply, %Game{game| board: board, history: changed ++ game.history}}
 
       {:bomb, board, changed} ->
-        score = round (scores[player] || 0) * 0.2
+        score = round (scores[player] || 0) * 0.5
         scores = Map.put(scores, player, score)
 
         broadcast(game, %RevealEvent{squares: changed, player: player, score: score})
