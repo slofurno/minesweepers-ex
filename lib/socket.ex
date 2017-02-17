@@ -8,8 +8,10 @@ defmodule Minesweepers.Socket do
   end
 
   defp query_string(req) do
-    {qs, _} = :cowboy_req.qs(req)
-    URI.decode_query(qs)
+    case :cowboy_req.qs(req) do
+      {qs, _} -> URI.decode_query(qs)
+      _ -> {:error, "invalid query string"}
+    end
   end
 
   defp match_query_string(%{"gameid" => gameid, "token" => token}) do
@@ -31,7 +33,7 @@ defmodule Minesweepers.Socket do
     |> case do
       {:ok, account, gameid} ->
         send self, {:init, gameid}
-        {:ok, req, %{account: account.id, game: gameid}, 8000}
+        {:ok, req, %{account: account.id, game: gameid}, 480000}
 
       rr ->
         IO.inspect(rr)

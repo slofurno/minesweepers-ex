@@ -19,7 +19,7 @@ defmodule Minesweepers.Bot do
     Game.set_name(game, player, "robot player")
     schedule_next_move()
 
-    {:ok, %{id: game, player: Utils.uuid, squares: rebuild_game(squares), ref: ref,
+    {:ok, %{id: game, player: player, squares: rebuild_game(squares), ref: ref,
       rows: rows, cols: cols, moves: @initial_moves, start: @first_click}}
   end
 

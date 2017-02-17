@@ -25,9 +25,12 @@ defmodule Minesweepers.Router do
   post "/api/games" do
     {:ok, body, conn} = read_body(conn)
     %{rows: rows, cols: cols, bots: bots} = Poison.decode!(body, as: %GameRequest{})
-    game = Game.Supervisor.start_game rows, cols, 0.206
+    game = Game.Supervisor.start_game(rows, cols, 0.206)
     Enum.each(1..bots, fn _ -> Bot.Supervisor.start_bot(game) end)
-    send_resp(conn, 200, "ok")
+
+    conn
+    |> put_resp_content_type("application/json")
+    |> send_resp(200, Poison.encode!(game))
   end
 
   post "/api/users" do
